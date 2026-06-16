@@ -1,0 +1,212 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+import Str from 'core/str';
+import { createProcessFeedbackButton, getProcessFeedbackZipLinks, SINGLE_REPORT_ACTION_CLASS, SINGLE_REPORT_BUTTON_CLASS, SINGLE_REPORT_STATUS_CLASS, sendZipLinksToProcessFeedback } from 'local_processfeedback/submission/report_transfer';
+import {debugError, debugLog} from 'local_processfeedback/utils/logger';
+
+const PROCESSFEEDBACK_TEXT = 'process feedback';
+const DOWNLOAD_PROCESS_DATA_TEXT = 'download process data';
+const SINGLE_INIT_PENDING_DATA = 'processfeedbackSingleReportInitialising';
+
+const getLanguageString = (key, value = undefined) => Str.get_string(key, 'local_processfeedback', value);
+
+const getLinkKey = (link) => `${link.dataset.submissionId || ''}:${link.getAttribute('href') || ''}`;
+
+const getUrl = (link, windowRef) => {
+    try {
+        return new URL(link.href, windowRef.location.href);
+    } catch (error) {
+        return null;
+    }
+};
+
+const getPluginFileParts = (link, windowRef) => {
+    const url = getUrl(link, windowRef);
+    if (!url) {
+        return [];
+    }
+
+    const parts = url.pathname.split('/').filter(Boolean).map((part) => {
+        try {
+            return decodeURIComponent(part);
+        } catch (error) {
+            return part;
+        }
+    });
+    const pluginFileIndex = parts.indexOf('pluginfile.php');
+    return pluginFileIndex === -1 ? [] : parts.slice(pluginFileIndex + 1);
+};
+
+const getPluginFileItemId = (link, windowRef) => {
+    const parts = getPluginFileParts(link, windowRef);
+    const componentIndex = parts.indexOf('assignsubmission_processfeedback');
+    if (componentIndex === -1 || parts.length <= componentIndex + 2) {
+        return 0;
+    }
+
+    return Number(parts[componentIndex + 2]) || 0;
+};
+
+const getZipFilenameFromUrl = (link, windowRef) => {
+    const parts = getPluginFileParts(link, windowRef);
+    const filename = parts.slice().reverse().find((part) => part.toLowerCase().indexOf('.zip') !== -1);
+    return filename || '';
+};
+
+const normaliseReportLinkDataset = (link, state, windowRef) => {
+    if (!link.dataset.processfeedbackZip) {
+        link.dataset.processfeedbackZip = 'true';
+    }
+    if (!link.dataset.assignmentId && state && state.params) {
+        link.dataset.assignmentId = String(state.params.assignmentInstanceId || state.params.activityInstanceId || 0);
+    }
+    if (!link.dataset.userid && state && state.params) {
+        link.dataset.userid = String(state.params.userId || 0);
+    }
+    if (!link.dataset.submissionId) {
+        const submissionId = getPluginFileItemId(link, windowRef);
+        if (submissionId) {
+            link.dataset.submissionId = String(submissionId);
+        }
+    }
+    if (!link.dataset.filename) {
+        const filename = getZipFilenameFromUrl(link, windowRef);
+        if (filename) {
+            link.dataset.filename = filename;
+        }
+    }
+};
+
+const hasProcessFeedbackContext = (link) => {
+    if (link.closest('.assignsubmission-processfeedback-summary, [class*="processfeedback"], [data-processfeedback-zip]')) {
+        return true;
+    }
+
+    const row = link.closest('tr, .submissionstatus, .submissionstatustable');
+    return Boolean(row && (row.textContent || '').toLowerCase().indexOf(PROCESSFEEDBACK_TEXT) !== -1);
+};
+
+const hasZipHint = (link) => {
+    const href = (link.getAttribute('href') || '').toLowerCase();
+    const filename = (link.dataset.filename || '').toLowerCase();
+    const text = (link.textContent || '').toLowerCase();
+
+    return link.dataset.processfeedbackZip === 'true' ||
+        filename.indexOf('.zip') !== -1 ||
+        href.indexOf('.zip') !== -1 ||
+        text.indexOf('.zip') !== -1 ||
+        text.indexOf(DOWNLOAD_PROCESS_DATA_TEXT) !== -1;
+};
+
+export const getSingleWritingProcessReportLinks = (documentRef) => {
+    const links = getProcessFeedbackZipLinks(documentRef);
+    const seen = new Set(links.map(getLinkKey));
+
+    Array.from(documentRef.querySelectorAll('a[href]')).forEach((link) => {
+        const href = link.getAttribute('href') || '';
+        const key = getLinkKey(link);
+        if (!href || seen.has(key) || !hasProcessFeedbackContext(link) || !hasZipHint(link)) {
+            return;
+        }
+
+        seen.add(key);
+        links.push(link);
+    });
+
+    debugLog(documentRef.defaultView || null, 'Single writing-process report links detected', {
+        linkCount: links.length,
+    });
+    return links;
+};
+
+export const initSingleWritingProcessReportButtons = async(windowRef, documentRef, state = null) => {
+    let buttonsAdded = 0;
+    const root = documentRef.documentElement;
+    if (root.dataset[SINGLE_INIT_PENDING_DATA] === 'true') {
+        debugLog(windowRef, 'Single writing-process report buttons skipped: initialisation already pending');
+        return false;
+    }
+
+    root.dataset[SINGLE_INIT_PENDING_DATA] = 'true';
+    let buttonLabel = '';
+    try {
+        buttonLabel = await getLanguageString('reportsinglebutton');
+    } finally {
+        delete root.dataset[SINGLE_INIT_PENDING_DATA];
+    }
+
+    getSingleWritingProcessReportLinks(documentRef).forEach((link) => {
+        if (link.dataset.processfeedbackReportInitialised === 'true') {
+            return;
+        }
+
+        const summary = link.closest('.assignsubmission-processfeedback-summary');
+        const statusCell = link.closest('td, th');
+        const container = summary || statusCell;
+        if (!container || !hasProcessFeedbackContext(link)) {
+            return;
+        }
+        if (container.querySelector(`.${SINGLE_REPORT_ACTION_CLASS}`)) {
+            return;
+        }
+
+        link.dataset.processfeedbackReportInitialised = 'true';
+        normaliseReportLinkDataset(link, state, windowRef);
+        debugLog(windowRef, 'Single writing-process report button initialising', {
+            submissionId: link.dataset.submissionId || '',
+            filename: link.dataset.filename || '',
+        });
+
+        const action = documentRef.createElement('div');
+        action.className = SINGLE_REPORT_ACTION_CLASS;
+
+        const button = createProcessFeedbackButton(
+            documentRef,
+            buttonLabel,
+            SINGLE_REPORT_BUTTON_CLASS
+        );
+
+        const status = documentRef.createElement('span');
+        status.className = `${SINGLE_REPORT_STATUS_CLASS} small text-muted`;
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+
+        button.addEventListener('click', async () => {
+            button.disabled = true;
+            status.textContent = '';
+            try {
+                await sendZipLinksToProcessFeedback([link], button, status, windowRef, {
+                    isMoodleSingle: 'true',
+                }, {
+                    successMessage: () => getLanguageString('reportsingleopened'),
+                });
+            } catch (error) {
+                button.disabled = false;
+                status.textContent = error.message || await getLanguageString('reportfilesendfailed');
+                debugError(windowRef, 'Process data sending failed!', error);
+            }
+        });
+
+        action.append(button, status);
+        link.insertAdjacentElement('afterend', action);
+        buttonsAdded += 1;
+    });
+
+    debugLog(windowRef, 'Single writing-process report buttons initialised', {
+        buttonsAdded,
+    });
+    return buttonsAdded > 0;
+};

@@ -1,0 +1,120 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Storage service for the Process Feedback UI.
+ *
+ * @module     local_processfeedback/services/storage
+ * @copyright  2026 Process Feedback
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+import {debugLog} from 'local_processfeedback/utils/logger';
+import localforage from 'local_processfeedback/localforage';
+
+const DB_NAME = 'ProcessFeedback';
+
+const commonConfig = {
+    name: DB_NAME,
+    version: 1.0,
+    description: 'Used by Process Feedback Moodle plugin to store user process data locally',
+};
+
+const lfInstance = (storeName) => {
+    if (!storeName) {
+        throw new Error('lfInstance: missing storeName');
+    }
+    return localforage.createInstance(Object.assign({}, commonConfig, {storeName}));
+};
+
+const idbUpdateTable = async(storeName, keyValuePairs) => {
+    debugLog(window, 'IndexedDB table update requested', {
+        storeName,
+        keys: Object.keys(keyValuePairs),
+    });
+    const storeManager = lfInstance(storeName);
+    try {
+        for (const [key, value] of Object.entries(keyValuePairs)) {
+            await storeManager.setItem(key, value);
+        }
+    } catch (err) {
+        debugLog(window, 'idbUpdateTable: Error saving data:', err);
+    }
+};
+
+const getDataFromIndexedDB = async(storeName, keys) => {
+    debugLog(window, 'IndexedDB keys requested', {
+        storeName,
+        keys,
+    });
+    try {
+        const storeManager = lfInstance(storeName);
+        const keyValuePairs = {};
+        for (const key of keys) {
+            try {
+                const value = await storeManager.getItem(key);
+                keyValuePairs[key] = value;
+            } catch (error) {
+                debugLog(window, `getDataFromIndexedDB: Error fetching key ${key}: ${error}`, storeName);
+            }
+        }
+        return keyValuePairs;
+    } catch (error) {
+        debugLog(window, `getDataFromIndexedDB: Error in getDataFromIndexedDB`, error);
+        return {};
+    }
+};
+
+const getAllKeyValuesFromInstance = async(storeName) => {
+    debugLog(window, 'IndexedDB full store requested', {
+        storeName,
+    });
+    try {
+        const storeManager = lfInstance(storeName);
+        const allKeys = await storeManager.keys();
+        const allKeyValues = {};
+        for (const key of allKeys) {
+            allKeyValues[key] = await storeManager.getItem(key);
+        }
+        return allKeyValues;
+    } catch (error) {
+        debugLog(window, 'getAllKeyValuesFromInstance error:', error);
+        return {};
+    }
+};
+
+const clearLocalDataForContext = async(context) => {
+    const storeName = context && context.storeName ? context.storeName : '';
+    if (!storeName) {
+        throw new Error('Missing Process Feedback local data context');
+    }
+
+    try {
+        const storeManager = lfInstance(storeName);
+        await storeManager.clear();
+        debugLog(window, 'IndexedDB store cleared', {
+            storeName,
+        });
+    } catch (error) {
+        debugLog(window, 'clearLocalDataForContext error:', error);
+    }
+};
+
+export const createStorage = () => ({
+    clearLocalDataForContext,
+    getDataFromIndexedDB,
+    getAllKeyValuesFromInstance,
+    idbUpdateTable,
+});
