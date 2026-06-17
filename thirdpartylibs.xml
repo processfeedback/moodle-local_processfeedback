@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<libraries>
+  <library>
+    <location>amd/src/jszip.js</location>
+    <name>JSZip</name>
+    <description>JavaScript library used to generate browser-side ZIP exports.</description>
+    <version>3.10.1</version>
+    <license>MIT OR GPL-3.0-or-later</license>
+    <licenseversion></licenseversion>
+    <repository>https://github.com/Stuk/jszip</repository>
+    <copyrights>
+      <copyright>2009-2016 Stuart Knightley</copyright>
+    </copyrights>
+    <customised>Retained as a Moodle AMD-compatible source file. Dynamic Function usage is present in the upstream distribution and is documented in the source header.</customised>
+  </library>
+  <library>
+    <location>amd/src/jszip.js</location>
+    <name>pako</name>
+    <description>DEFLATE implementation bundled inside the JSZip browser distribution.</description>
+    <version>1.0.2</version>
+    <license>MIT</license>
+    <licenseversion></licenseversion>
+    <repository>https://github.com/nodeca/pako</repository>
+    <copyrights>
+      <copyright>2014-2017 Vitaly Puzrin and Andrey Tupitsin</copyright>
+    </copyrights>
+    <customised>Bundled transitively inside JSZip 3.10.1; not maintained as a separate Moodle AMD module.</customised>
+  </library>
+  <library>
+    <location>amd/src/localforage.js</location>
+    <name>localForage</name>
+    <description>Offline browser storage library used to persist writing process revisions in IndexedDB with browser fallbacks.</description>
+    <version>1.10.0</version>
+    <license>Apache</license>
+    <licenseversion>2.0</licenseversion>
+    <repository>https://github.com/localForage/localForage</repository>
+    <copyrights>
+      <copyright>2013-2017 Mozilla</copyright>
+    </copyrights>
+    <customised>Retained as a single Moodle AMD-compatible source file.</customised>
+  </library>
+  <library>
+    <location>amd/src/localforage.js</location>
+    <name>lie</name>
+    <description>Promise implementation bundled inside the localForage browser distribution.</description>
+    <version>3.1.1</version>
+    <license>MIT</license>
+    <licenseversion></licenseversion>
+    <repository>https://github.com/calvinmetcalf/lie</repository>
+    <customised>Bundled transitively inside localForage 1.10.0; not maintained as a separate Moodle AMD module.</customised>
+  </library>
+  <library>
+    <location>amd/src/localforage.js</location>
+    <name>immediate</name>
+    <description>Asynchronous task scheduling helper bundled through lie inside the localForage browser distribution.</description>
+    <version>3.0.6</version>
+    <license>MIT</license>
+    <licenseversion></licenseversion>
+    <repository>https://github.com/calvinmetcalf/immediate</repository>
+    <customised>Bundled transitively inside localForage 1.10.0 through lie 3.1.1; not maintained as a separate Moodle AMD module.</customised>
+  </library>
+  <library>
+    <location>amd/src/diff_match_patch.js</location>
+    <name>diff-match-patch</name>
+    <description>Text diff, match, and patch library used to create compact writing revision patches.</description>
+    <version>1.0.5</version>
+    <license>Apache</license>
+    <licenseversion>2.0</licenseversion>
+    <repository>https://github.com/google/diff-match-patch</repository>
+    <copyrights>
+      <copyright>2018 The diff-match-patch Authors</copyright>
+    </copyrights>
+    <customised>Retained as a Moodle AMD-compatible source file with a named ES module export for DiffMatchPatch.</customised>
+  </library>
+</libraries>

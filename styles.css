@@ -1,0 +1,177 @@
+.local-processfeedback-card {
+    background: var(--light, #f8f9fa);
+    border: 0;
+    padding: 1rem;
+}
+
+.local-processfeedback-header-row {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.local-processfeedback-heading {
+    line-height: 1;
+}
+
+.local-processfeedback-description {
+    margin: 0 0 1rem;
+}
+
+.local-processfeedback-learn-more {
+    margin-left: 4px;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.local-processfeedback-download-button {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.5rem;
+    line-height: 1.5;
+}
+
+.local-processfeedback-download-button:disabled {
+    opacity: 0.65;
+}
+
+.local-processfeedback-count {
+    align-items: center;
+    border-radius: 10rem;
+    display: inline-flex;
+    font-size: 0.75em;
+    font-weight: 600;
+    height: 1.25em;
+    justify-content: center;
+    line-height: 1;
+    min-width: 1.25em;
+    padding: 0 0.375em;
+    margin-left: 0.5rem;
+}
+
+.local-processfeedback-download-button .local-processfeedback-count {
+    background: var(--light, #f8f9fa);
+    color: var(--dark, #212529);
+}
+
+.local-processfeedback-export-modal {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.local-processfeedback-export-card {
+    width: 100%;
+}
+
+.local-processfeedback-export-header {
+    justify-content: center;
+    text-align: center;
+}
+
+.local-processfeedback-export-title {
+    line-height: 1.4;
+}
+
+.local-processfeedback-export-details {
+    margin-bottom: 0;
+}
+
+.local-processfeedback-export-progress-view {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.local-processfeedback-export-progress-view > * {
+    width: 100%;
+}
+
+.local-processfeedback-export-progress-view .local-processfeedback-export-spinner {
+    flex: 0 0 auto;
+    width: 2rem;
+}
+
+.local-processfeedback-export-spinner {
+    height: 2rem;
+    margin-bottom: 1rem;
+    width: 2rem;
+}
+
+.local-processfeedback-export-status {
+    margin-bottom: 0;
+    width: 100%;
+}
+
+.local-processfeedback-export-footer {
+    justify-content: space-between;
+}
+
+.local-processfeedback-export-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.local-processfeedback-export-action {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.5rem;
+}
+
+.local-processfeedback-dashboard-report-action {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.local-processfeedback-dashboard-report-action .btn,
+.local-processfeedback-single-report-action .btn {
+    align-items: center;
+    display: inline-flex;
+    gap: 8px;
+}
+
+.local-processfeedback-beta-badge {
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    font-size: 0.75em;
+    letter-spacing: 0;
+    line-height: 1;
+    padding: 0.2em 0.35em;
+}
+
+.local-processfeedback-single-report-action {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.local-processfeedback-single-report-button {
+    min-height: 34px;
+    padding: 6px 14px;
+}
+
+.local-processfeedback-single-report-status {
+    min-height: 1.25rem;
+}
+
+.local-processfeedback-submission-table {
+    max-width: none;
+    min-width: 1280px;
+}
+
+.local-processfeedback-submission-cell {
+    min-width: 360px;
+    vertical-align: top;
+    width: 360px;
+}
+
+.local-processfeedback-submission-cell .assignsubmission-processfeedback-summary {
+    line-height: 1.45;
+    min-width: 340px;
+}

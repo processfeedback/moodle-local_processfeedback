@@ -1,0 +1,18 @@
+{
+  "name": "moodle-local_processfeedback",
+  "private": true,
+  "description": "Build tooling for the Process Feedback Moodle Local plugin package.",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "build": "grunt amd",
+    "build:amd": "grunt amd",
+    "grunt": "grunt"
+  },
+  "devDependencies": {
+    "grunt": "^1.6.2"
+  },
+  "dependencies": {
+    "diff-match-patch": "^1.0.5",
+    "localforage": "^1.10.0"
+  }
+}
