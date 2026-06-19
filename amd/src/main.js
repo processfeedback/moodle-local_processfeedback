@@ -21,7 +21,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-import {createPanel, getAssignmentEditorPlacementTarget, getForumBoardPlacementTarget, PANEL_CLASS} from 'local_processfeedback/components/panel';
+import {createPanel, getAssignmentEditorPlacementTarget, getAssignmentStatusPlacementTarget, getForumBoardPlacementTarget, PANEL_CLASS} from 'local_processfeedback/components/panel';
 import {createEditorBinder} from 'local_processfeedback/components/editor';
 import {createAutosaveService} from 'local_processfeedback/services/autosave';
 import {fetchBootstrapData} from 'local_processfeedback/services/bootstrap';
@@ -32,6 +32,7 @@ import {createState, ensureProjectId} from 'local_processfeedback/state/store';
 import {initSubmissionInterceptor} from 'local_processfeedback/submission/interceptor';
 import { notifyException } from 'local_processfeedback/utils/notifications';
 import { initAssignmentReportActions } from 'local_processfeedback/submission/assignment_report_actions';
+import { getSingleWritingProcessReportLinks } from 'local_processfeedback/submission/single_report_buttons';
 import {debugError, debugLog} from 'local_processfeedback/utils/logger';
 
 const ROOT_SELECTOR = '#local-processfeedback-root';
@@ -156,6 +157,8 @@ const createPanelRegistry = (state, onDownload, onOpenReport, documentRef) => {
         updateCaptureControls: () => eachPanel((panel) => panel.updateCaptureControls()),
     };
 };
+
+const hasAssignmentReportActions = (documentRef) => getSingleWritingProcessReportLinks(documentRef).length > 0;
 
 /**
  * Initialise the Process Feedback browser-side activity capture UI.
@@ -291,10 +294,17 @@ export const init = async(configOrContextid, cmid) => {
         }
 
         const editor = editorBinder.detectEditor();
-        const placement = editor ? getAssignmentEditorPlacementTarget(document) : null;
+        const placement = editor ? getAssignmentEditorPlacementTarget(document) :
+            (
+                state.lastRevisionCount > 0 && !hasAssignmentReportActions(document) ?
+                    getAssignmentStatusPlacementTarget(document) :
+                    null
+            );
         if (!placement) {
             panelRegistry.removePanels();
-            debugLog(window, 'Assignment panel sync removed panels: no editor placement available');
+            debugLog(window, 'Assignment panel sync removed panels: no editor or fallback placement available', {
+                hasEditor: Boolean(editor),
+            });
             return false;
         }
 

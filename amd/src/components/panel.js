@@ -532,6 +532,18 @@ export const getAssignmentEditorPlacementTarget = (documentRef) => {
     return null;
 };
 
+export const getAssignmentStatusPlacementTarget = (documentRef) => {
+    const statusTable = documentRef.querySelector('.submissionstatustable, .generaltable.submissionstatus');
+    if (!statusTable) {
+        return null;
+    }
+
+    return {
+        element: statusTable,
+        position: 'beforebegin',
+    };
+};
+
 export const getForumBoardPlacementTarget = (documentRef) => {
     const main = documentRef.getElementById('region-main') ||
         documentRef.querySelector('[role="main"]') ||
