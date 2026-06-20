@@ -101,9 +101,6 @@ const createDetailsRow = (documentRef, labelText, valueText) => {
 const createDetailsView = (state, documentRef) => {
     const wrap = documentRef.createElement('div');
 
-    const heading = documentRef.createElement('h3');
-    heading.className = 'h6';
-    heading.textContent = getString(state, 'exportDetailsTitle');
 
     const details = documentRef.createElement('dl');
     details.className = 'row local-processfeedback-export-details';
@@ -114,7 +111,7 @@ const createDetailsView = (state, documentRef) => {
         createDetailsRow(documentRef, getString(state, 'exportFieldEmail'), state.params.userEmail),
     ].forEach((row) => details.append(...row));
 
-    wrap.append(heading, details);
+    wrap.append(details);
     return wrap;
 };
 
