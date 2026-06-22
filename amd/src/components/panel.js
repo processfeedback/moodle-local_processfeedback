@@ -579,6 +579,8 @@ export const createPanel = (state, onDownload, onOpenReport, documentRef) => {
     description.append(documentRef.createTextNode(getString(state, 'panelDescription')));
     const learnMoreLink = documentRef.createElement('a');
     learnMoreLink.href = 'https://processfeedback.org/moodle-plugin-for-students';
+    learnMoreLink.target = "_blank";
+    learnMoreLink.rel = "noopener";
     learnMoreLink.textContent = getString(state, 'learnMore');
     learnMoreLink.className = 'local-processfeedback-learn-more';
     description.append(learnMoreLink);
