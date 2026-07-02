@@ -25,8 +25,8 @@ export const SINGLE_REPORT_BUTTON_CLASS = 'local-processfeedback-single-report-b
 const SUBMISSION_TABLE_CLASS = 'local-processfeedback-submission-table';
 const SUBMISSION_CELL_CLASS = 'local-processfeedback-submission-cell';
 const PROCESSFEEDBACK_BUTTON_CLASS = 'btn btn-secondary';
-const EXPLORER_URL = 'https://test.processfeedback.org/exploreprocess';
-const EXPLORER_ORIGIN = 'https://test.processfeedback.org';
+const EXPLORER_URL = 'https://app.processfeedback.org/exploreprocess';
+const EXPLORER_ORIGIN = 'https://app.processfeedback.org';
 const READY_TIMEOUT_MS = 60000;
 const ZIP_TRANSFER_CHUNK_SIZE = 5;
 
