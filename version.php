@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_processfeedback';
-$plugin->version = 2026092300;
+$plugin->version = 2026092400;
 $plugin->requires = 2024042200;
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '0.5.0';
+$plugin->maturity = MATURITY_STABLE;
+$plugin->release = '0.5.1';

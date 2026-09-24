@@ -108,8 +108,9 @@ When auto submission is on:
 - Moodle 4.4+ (`$plugin->requires = 2024042200`)
 - JavaScript and IndexedDB enabled in the student's browser
 - For `assignsubmission_processfeedback`: the Moodle assignment activity (`mod_assign`) and `local_processfeedback` version `2026092300` or newer
+- **Report-page domain recognition:** for the **Open report** button to open reports automatically, the Moodle site's domain must be added to Process Feedback's recognized-domain list. Institutions interested in piloting should contact us to have their domain added. Until then, users can download the process-data ZIP and load it manually in the Process Feedback report page.
 
-Current release: `0.5.0` alpha (both plugins).
+Current release: `0.5.1` (both plugins).
 
 ## E. Steps for installing the plugins
 

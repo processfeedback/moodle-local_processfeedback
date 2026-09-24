@@ -1,8 +1,12 @@
 # Process Feedback Local changes
 
+## 0.5.1 - 2026-09-24
+
+- Marks the plugin as stable (previously alpha).
+
 ## 0.5.0 - 2026-09-20
 
-- Alpha release of the `local_processfeedback` Moodle local plugin.
+- Release of the `local_processfeedback` Moodle local plugin.
 - Adds a fallback panel placement target for assignment submission status tables.
 - Opens the student panel link in a new tab.
 - Points ProcessFeedback explorer URLs at the production environment.
