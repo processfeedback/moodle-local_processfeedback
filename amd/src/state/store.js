@@ -1,0 +1,159 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * State store for the Process Feedback UI.
+ *
+ * @module     local_processfeedback/state/store
+ * @copyright  2026 Process Feedback
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+const normaliseStrings = (strings = {}) => ({
+    captureIntro: strings.captureIntro || strings.captureintro || '',
+    downloadZip: strings.downloadZip || strings.downloadzip || '',
+    reportButtonLabel: strings.reportButtonLabel || strings.reportbuttonlabel || '',
+    panelDescription: strings.panelDescription || strings.paneldescription || '',
+    learnMore: strings.learnMore || strings.learnmore || '',
+    downloadButtonTitleIntro: strings.downloadButtonTitleIntro || strings.downloadbuttontitleintro || '',
+    downloadButtonTitleAction: strings.downloadButtonTitleAction || strings.downloadbuttontitleaction || '',
+    downloadButtonTitleRevision: strings.downloadButtonTitleRevision || strings.downloadbuttontitlerevision || '',
+    savedRevision: strings.savedRevision || strings.savedrevision || '',
+    typingReady: strings.typingReady || strings.typingready || '',
+    downloadReady: strings.downloadReady || strings.downloadready || '',
+    downloadEmpty: strings.downloadEmpty || strings.downloadempty || '',
+    zipCreateFailed: strings.zipCreateFailed || strings.zipcreatefailed || '',
+    zipReadmeGenerated: strings.zipReadmeGenerated || strings.zipreadmegenerated || '',
+    zipReadmeData: strings.zipReadmeData || strings.zipreadmedata || '',
+    zipReadmePolicy: strings.zipReadmePolicy || strings.zipreadmepolicy || '',
+    captureFailed: strings.captureFailed || strings.capturefailed || '',
+    storageUpdateFailed: strings.storageUpdateFailed || strings.storageupdatefailed || '',
+    untitledTask: strings.untitledTask || strings.untitledtask || '',
+    untitledCourse: strings.untitledCourse || strings.untitledcourse || '',
+    exportModalTitle: strings.exportModalTitle || strings.exportmodaltitle || '',
+    exportModalSubtitle: strings.exportModalSubtitle || strings.exportmodalsubtitle || '',
+    exportFieldTitle: strings.exportFieldTitle || strings.exportfieldtitle || '',
+    exportFieldName: strings.exportFieldName || strings.exportfieldname || '',
+    exportFieldInstitution: strings.exportFieldInstitution || strings.exportfieldinstitution || '',
+    exportFieldEmail: strings.exportFieldEmail || strings.exportfieldemail || '',
+    exportClose: strings.exportClose || strings.exportclose || '',
+    exportProcessData: strings.exportProcessData || strings.exportprocessdata || '',
+    exportOpenReportButton: strings.exportOpenReportButton || strings.exportopenreportbutton || '',
+    exportPackagingTitle: strings.exportPackagingTitle || strings.exportpackagingtitle || '',
+    exportStepsReady: strings.exportStepsReady || strings.exportstepsready || '',
+    exportStepQueued: strings.exportStepQueued || strings.exportstepqueued || '',
+    exportStepRunning: strings.exportStepRunning || strings.exportsteprunning || '',
+    exportStepDone: strings.exportStepDone || strings.exportstepdone || '',
+    exportStepError: strings.exportStepError || strings.exportsteperror || '',
+    exportStepOpenReport: strings.exportStepOpenReport || strings.exportstepopenreport || '',
+    exportStepOpenReportDetail: strings.exportStepOpenReportDetail || strings.exportstepopenreportdetail || '',
+    exportStepCapture: strings.exportStepCapture || strings.exportstepcapture || '',
+    exportStepCaptureDetail: strings.exportStepCaptureDetail || strings.exportstepcapturedetail || '',
+    exportStepPaste: strings.exportStepPaste || strings.exportsteppaste || '',
+    exportStepPasteDetail: strings.exportStepPasteDetail || strings.exportsteppastedetail || '',
+    exportStepCount: strings.exportStepCount || strings.exportstepcount || '',
+    exportStepCountDetail: strings.exportStepCountDetail || strings.exportstepcountdetail || '',
+    exportStepPull: strings.exportStepPull || strings.exportsteppull || '',
+    exportStepPullDetail: strings.exportStepPullDetail || strings.exportsteppulldetail || '',
+    exportStepPayload: strings.exportStepPayload || strings.exportsteppayload || '',
+    exportStepPayloadDetail: strings.exportStepPayloadDetail || strings.exportsteppayloaddetail || '',
+    exportStepZip: strings.exportStepZip || strings.exportstepzip || '',
+    exportStepZipDetail: strings.exportStepZipDetail || strings.exportstepzipdetail || '',
+    exportStepDownload: strings.exportStepDownload || strings.exportstepdownload || '',
+    exportStepDownloadDetail: strings.exportStepDownloadDetail || strings.exportstepdownloaddetail || '',
+    exportStepTransfer: strings.exportStepTransfer || strings.exportsteptransfer || '',
+    exportErrorPopupBlocked: strings.exportErrorPopupBlocked || strings.exporterrorpopupblocked || '',
+    exportErrorExplorerTimeout: strings.exportErrorExplorerTimeout || strings.exporterrorexplorertimeout || '',
+    exportDownloadedTitle: strings.exportDownloadedTitle || strings.exportdownloadedtitle || '',
+    exportDownloadedPrefix: strings.exportDownloadedPrefix || strings.exportdownloadedprefix || '',
+    exportReportReady: strings.exportReportReady || strings.exportreportready || '',
+    exportOpenReport: strings.exportOpenReport || strings.exportopenreport || '',
+    savingProcessData: strings.savingProcessData || strings.savingprocessdata || '',
+});
+
+const normaliseParams = (params = {}) => ({
+    captureAllowed: params.captureAllowed === true || params.captureallowed === true,
+    captureEnabledByDefault: params.captureEnabledByDefault === true || params.captureenabledbydefault === true,
+    contextEnabled: params.contextEnabled === true || params.contextenabled === true,
+    canUse: params.canUse === true || params.canuse === true,
+    canExportProcessData: params.canExportProcessData === true || params.canexportprocessdata === true,
+    contextId: Number(params.contextId || params.contextid || 0),
+    courseId: Number(params.courseId || params.courseid || 0),
+    courseName: params.courseName || params.coursename || '',
+    cmId: Number(params.cmId || params.cmid || 0),
+    moduleName: params.moduleName || params.modName || params.modname || 'assign',
+    activityInstanceId: Number(
+        params.activityInstanceId ||
+        params.activityinstanceid ||
+        params.assignmentInstanceId ||
+        params.assignmentinstanceid ||
+        0
+    ),
+    activityTitle: params.activityTitle || params.activitytitle || params.assignmentTitle || params.assignmenttitle || '',
+    assignmentInstanceId: Number(params.assignmentInstanceId || params.assignmentinstanceid || params.activityInstanceId || 0),
+    assignmentTitle: params.assignmentTitle || params.assignmenttitle || params.activityTitle || params.activitytitle || '',
+    pageUrl: params.pageUrl || params.pageurl || '',
+    siteName: params.siteName || params.sitename || '',
+    siteHash: params.siteHash || params.sitehash || '',
+    userId: Number(params.userId || params.userid || 0),
+    userFullName: params.userFullName || params.userfullname || '',
+    userEmail: params.userEmail || params.useremail || '',
+    projectId: params.projectId || params.projectid || '',
+    snapshotInterval: Number(params.snapshotInterval || params.snapshotinterval || 5000),
+    compressSnapshots: false,
+    strings: normaliseStrings(params.strings),
+});
+
+export const createState = (params) => ({
+    captureIntervalId: null,
+    captureInProgress: false,
+    capturePaused: false,
+    lastInputAt: 0,
+    tickCount: 0,
+    lastTextHashesBySource: {},
+    lastTextLengthsBySource: {},
+    lastRevisionCount: 0,
+    params: normaliseParams(params),
+});
+
+export const ensureProjectId = (state) => {
+    if (state.params.projectId) {
+        return state.params.projectId;
+    }
+
+    state.params.projectId = [
+        'local_processfeedback',
+        state.params.userId,
+        state.params.courseId,
+        state.params.cmId,
+    ].join(':');
+
+    return state.params.projectId;
+};
+
+export const getString = (state, key, fallback = '') => {
+    if (state.params && state.params.strings && state.params.strings[key]) {
+        return state.params.strings[key];
+    }
+    return fallback;
+};
+
+export const getStoreName = (state) => state.params.projectId;
+
+export const getTaskId = (state) => state.params.pageUrl || state.params.projectId;
+
+export const getActivityTitle = (state) => state.params.activityTitle ||
+    state.params.assignmentTitle ||
+    getString(state, 'untitledTask');
