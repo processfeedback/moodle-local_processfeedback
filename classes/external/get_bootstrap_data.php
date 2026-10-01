@@ -106,6 +106,7 @@ final class get_bootstrap_data extends external_api {
         ]);
 
         $activitytitle = $canuse ? format_string($cm->name, true, ['context' => $context]) : '';
+        $uploadrepositoryid = ($canuse && $cm->modname === 'assign') ? self::get_upload_repository_id($modulecontext) : 0;
 
         return [
             'enabled' => $activityenabled && $canuse,
@@ -128,6 +129,7 @@ final class get_bootstrap_data extends external_api {
             'userfullname' => $canuse ? fullname($USER) : '',
             'useremail' => $canuse ? (string) ($USER->email ?? '') : '',
             'projectid' => $projectid,
+            'uploadrepositoryid' => $uploadrepositoryid,
             'snapshotinterval' => self::SNAPSHOT_INTERVAL_MS,
             'compresssnapshots' => false,
             'strings' => [
@@ -196,6 +198,29 @@ final class get_bootstrap_data extends external_api {
     }
 
     /**
+     * Get the core upload repository instance the current user can use in a module context.
+     *
+     * Submission process data is uploaded through Moodle's standard repository upload flow,
+     * so it is unavailable when the site disables the upload repository or the user cannot use it.
+     *
+     * @param \context_module $context Module context.
+     * @return int Repository instance ID, or 0 when unavailable.
+     */
+    private static function get_upload_repository_id(\context_module $context): int {
+        global $CFG;
+        require_once($CFG->dirroot . '/repository/lib.php');
+
+        $repositories = \repository::get_instances([
+            'type' => 'upload',
+            'currentcontext' => $context,
+            'onlyvisible' => true,
+        ]);
+        $repository = reset($repositories);
+
+        return $repository ? (int) $repository->id : 0;
+    }
+
+    /**
      * Describe returned AJAX data.
      *
      * @return external_single_structure
@@ -222,6 +247,10 @@ final class get_bootstrap_data extends external_api {
             'userfullname' => new external_value(PARAM_TEXT, 'Current user full name'),
             'useremail' => new external_value(PARAM_EMAIL, 'Current user email address', VALUE_DEFAULT, ''),
             'projectid' => new external_value(PARAM_TEXT, 'Process Feedback project ID'),
+            'uploadrepositoryid' => new external_value(
+                PARAM_INT,
+                'Upload repository instance used for submission process data, or 0 when unavailable'
+            ),
             'snapshotinterval' => new external_value(PARAM_INT, 'Snapshot interval in milliseconds'),
             'compresssnapshots' => new external_value(PARAM_BOOL, 'Whether snapshots should be compressed for export'),
             'strings' => new external_single_structure([

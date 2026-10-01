@@ -13,11 +13,24 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-import Str from 'core/str';
-import { createProcessFeedbackButton, DASHBOARD_TOOLBAR_CLASS, getProcessFeedbackZipLinks, sendZipLinksToProcessFeedback } from 'local_processfeedback/submission/report_transfer';
+/**
+ * Grading table dashboard report button for the Process Feedback UI.
+ *
+ * @module     local_processfeedback/submission/dashboard_report_button
+ * @copyright  2026 Process Feedback
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+import {getString} from 'core/str';
+import {
+    createProcessFeedbackButton,
+    DASHBOARD_TOOLBAR_CLASS,
+    getProcessFeedbackZipLinks,
+    sendZipLinksToProcessFeedback,
+} from 'local_processfeedback/submission/report_transfer';
 import {debugError, debugLog} from 'local_processfeedback/utils/logger';
 
-const getLanguageString = (key, value = undefined) => Str.get_string(key, 'local_processfeedback', value);
+const getLanguageString = (key, value = undefined) => getString(key, 'local_processfeedback', value);
 const DASHBOARD_INIT_PENDING_DATA = 'processfeedbackDashboardReportInitialising';
 
 const getAssignAction = (windowRef) => {
@@ -64,7 +77,7 @@ const createDashboardReportToolbar = async(documentRef) => {
     status.setAttribute('aria-live', 'polite');
 
     toolbar.append(button, status);
-    return { toolbar, button, status };
+    return {toolbar, button, status};
 };
 
 export const initProcessFeedbackDashboardButton = async(windowRef, documentRef) => {
@@ -96,7 +109,7 @@ export const initProcessFeedbackDashboardButton = async(windowRef, documentRef) 
     let status = null;
     try {
         root.dataset[DASHBOARD_INIT_PENDING_DATA] = 'true';
-        ({ toolbar, button, status } = await createDashboardReportToolbar(documentRef));
+        ({toolbar, button, status} = await createDashboardReportToolbar(documentRef));
         if (documentRef.querySelector(`.${DASHBOARD_TOOLBAR_CLASS}`)) {
             debugLog(windowRef, 'Dashboard report button skipped: toolbar was added while initialising');
             return;
@@ -110,7 +123,7 @@ export const initProcessFeedbackDashboardButton = async(windowRef, documentRef) 
         linkCount: links.length,
     });
 
-    button.addEventListener('click', async () => {
+    button.addEventListener('click', async() => {
         const currentLinks = getProcessFeedbackZipLinks(documentRef);
         if (currentLinks.length === 0) {
             status.textContent = await getLanguageString('reportnozipfiles');

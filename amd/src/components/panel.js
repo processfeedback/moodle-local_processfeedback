@@ -21,7 +21,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-import { getActivityTitle, getString } from 'local_processfeedback/state/store';
+import {getActivityTitle, getString} from 'local_processfeedback/state/store';
 import {debugError, debugLog, isDebugExportStepsEnabled} from 'local_processfeedback/utils/logger';
 
 export const PANEL_CLASS = 'local-processfeedback-panel';
@@ -39,20 +39,6 @@ const FOCUSABLE_SELECTOR = [
     '[contenteditable]',
     '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
-
-const getDownloadButtonTitle = (state) => [
-    getString(state, 'downloadButtonTitleIntro'),
-    getString(state, 'downloadButtonTitleAction'),
-    getString(state, 'downloadButtonTitleRevision').replace('__COUNT__', String(state.lastRevisionCount)),
-].join(' ');
-
-const createButton = (documentRef, label, className) => {
-    const button = documentRef.createElement('button');
-    button.type = 'button';
-    button.className = className;
-    button.append(documentRef.createTextNode(label));
-    return button;
-};
 
 const setElementHidden = (element, hidden) => {
     element.hidden = hidden;
@@ -248,7 +234,11 @@ const createExportModal = (state, onDownload, onOpenReport, documentRef) => {
     const existingModal = documentRef.querySelector(`.${MODAL_CLASS}`);
     if (existingModal) {
         debugLog(windowRef, 'Removing existing export modal before opening a new one');
-        existingModal.remove();
+        if (typeof existingModal.localProcessfeedbackClose === 'function') {
+            existingModal.localProcessfeedbackClose();
+        } else {
+            existingModal.remove();
+        }
     }
     const previousActiveElement = documentRef.activeElement;
     let isClosed = false;
@@ -318,12 +308,27 @@ const createExportModal = (state, onDownload, onOpenReport, documentRef) => {
         overlay.focus();
     };
 
+    // Keep focus inside the modal dialog while it is open, including when the user returns to this
+    // browser tab (for example after the report opens in a new tab) or focus lands on the page body.
+    const keepFocusInDialog = (event) => {
+        if (!isClosed && !overlay.contains(event.target)) {
+            focusDialog();
+        }
+    };
+    const restoreFocusOnReturn = () => {
+        if (!isClosed && !overlay.contains(documentRef.activeElement)) {
+            focusDialog();
+        }
+    };
+
     const closeModal = () => {
         if (isClosed) {
             return;
         }
         debugLog(windowRef, 'Closing export modal');
         isClosed = true;
+        documentRef.removeEventListener('focusin', keepFocusInDialog);
+        windowRef.removeEventListener('focus', restoreFocusOnReturn);
         if (activeReporter && typeof activeReporter.cancel === 'function') {
             activeReporter.cancel();
         }
@@ -351,6 +356,7 @@ const createExportModal = (state, onDownload, onOpenReport, documentRef) => {
         );
         const link = documentRef.createElement('a');
         link.href = EXPLORE_PROCESS_URL;
+        link.className = 'local-processfeedback-explore-link';
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         link.textContent = getString(state, 'exportOpenReport');
@@ -359,12 +365,19 @@ const createExportModal = (state, onDownload, onOpenReport, documentRef) => {
         await reporter.success(fragment);
     };
 
+    let actionBusy = false;
+
+    // Mark the actions unavailable with aria-disabled rather than the disabled attribute: disabling the
+    // focused button makes the browser drop focus to the page body, outside the modal dialog.
     const setActionDisabled = (disabled) => {
         if (isClosed) {
             return;
         }
-        processButton.disabled = disabled;
-        openReportButton.disabled = disabled;
+        actionBusy = disabled;
+        [processButton, openReportButton].forEach((button) => {
+            button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+            button.classList.toggle('disabled', disabled);
+        });
     };
 
     const runExportAction = (action, actionType) => {
@@ -396,6 +409,7 @@ const createExportModal = (state, onDownload, onOpenReport, documentRef) => {
             });
             progressView.reporter.setSpinnerVisible(false);
             progressView.reporter.error('count', getString(state, 'downloadEmpty'));
+            return;
         }).catch((error) => {
             if (isClosed || progressView.reporter.isCancelled() || (error && error.name === 'AbortError')) {
                 debugLog(windowRef, 'Export action stopped after close or cancel', {
@@ -413,13 +427,18 @@ const createExportModal = (state, onDownload, onOpenReport, documentRef) => {
 
     processButton.addEventListener('click', (event) => {
         event.preventDefault();
-        runExportAction(onDownload, 'download');
+        if (!actionBusy) {
+            runExportAction(onDownload, 'download');
+        }
     });
     openReportButton.addEventListener('click', (event) => {
         event.preventDefault();
-        runExportAction(onOpenReport, 'report');
+        if (!actionBusy) {
+            runExportAction(onOpenReport, 'report');
+        }
     });
 
+    overlay.localProcessfeedbackClose = closeModal;
     closeButton.addEventListener('click', closeModal);
     overlay.addEventListener('click', (event) => {
         if (event.target === overlay) {
@@ -458,6 +477,8 @@ const createExportModal = (state, onDownload, onOpenReport, documentRef) => {
     dialog.append(card);
     overlay.append(dialog);
     documentRef.body.append(overlay);
+    documentRef.addEventListener('focusin', keepFocusInDialog);
+    windowRef.addEventListener('focus', restoreFocusOnReturn);
     debugLog(windowRef, 'Export modal opened', {
         debugExportSteps: isDebugExportStepsEnabled(windowRef),
     });
@@ -598,7 +619,7 @@ export const createPanel = (state, onDownload, onOpenReport, documentRef) => {
         count
     );
 
-    const hoverHandlers = { enter: null, leave: null };
+    const hoverHandlers = {enter: null, leave: null};
     const buttonOpenedKey = getButtonOpenedKey(state);
     if (localStorage.getItem(buttonOpenedKey) === '1') {
         applySecondaryStyle(downloadButton, hoverHandlers);
@@ -649,9 +670,9 @@ export const createPanel = (state, onDownload, onOpenReport, documentRef) => {
     return {
         element: panel,
         setRevisionCount,
-        setCaptureStatus: () => { },
-        setControlHandlers: () => { },
-        setStatus: () => { },
+        setCaptureStatus: () => undefined,
+        setControlHandlers: () => undefined,
+        setStatus: () => undefined,
         updateCaptureControls,
     };
 };

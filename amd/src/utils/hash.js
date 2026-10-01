@@ -26,7 +26,10 @@ export const simpleHash = (value) => {
     const input = String(value || '');
 
     for (let i = 0; i < input.length; i++) {
+        // Bitwise operations keep the classic 32-bit string hash stable for stored revision data.
+        // eslint-disable-next-line no-bitwise
         hash = ((hash << 5) - hash) + input.charCodeAt(i);
+        // eslint-disable-next-line no-bitwise
         hash |= 0;
     }
 

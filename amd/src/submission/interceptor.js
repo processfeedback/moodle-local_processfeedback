@@ -43,13 +43,17 @@ const shouldUploadProcessData = (assignForm) => {
     return checkbox.checked;
 };
 
-const injectDraftItemId = (assignForm, draftItemId) => {
+const getFormDraftItemId = (assignForm) => {
     const input = getDraftItemIdInput(assignForm);
-    if (!input) {
-        return false;
+    const draftItemId = input ? Number(input.value) : 0;
+    return Number.isInteger(draftItemId) && draftItemId > 0 ? draftItemId : 0;
+};
+
+const setFormDraftItemId = (assignForm, draftItemId) => {
+    const input = getDraftItemIdInput(assignForm);
+    if (input) {
+        input.value = String(draftItemId);
     }
-    input.value = String(draftItemId);
-    return true;
 };
 
 export const initSubmissionInterceptor = (state, revisionStore, autosaveService, windowRef, documentRef) => {
@@ -105,31 +109,37 @@ export const initSubmissionInterceptor = (state, revisionStore, autosaveService,
         submitButtonClicked = false;
         event.preventDefault();
 
+        // The assignment submission plugin creates the draft area when it renders the form.
+        const formDraftItemId = getFormDraftItemId(assignForm);
+        let uploaded = false;
         try {
-            const draftItemId = await uploadProcessFeedbackSubmission(state, revisionStore, autosaveService, windowRef);
-            if (draftItemId) {
-                const injected = injectDraftItemId(assignForm, draftItemId);
-                if (!injected) {
-                    console.error('[ProcessFeedback] Could not inject draft item ID into form — ' +
-                        'process data was uploaded but will not be linked to this submission.');
-                } else {
-                    debugLog(windowRef, 'Submission draft item ID injected', {draftItemId});
-                }
-            } else {
-                debugLog(windowRef, 'No draft item ID returned — submission will proceed without process data');
-            }
+            const draftItemId = await uploadProcessFeedbackSubmission(
+                state,
+                revisionStore,
+                autosaveService,
+                windowRef,
+                formDraftItemId
+            );
+            uploaded = Boolean(draftItemId);
+            debugLog(windowRef, uploaded ?
+                'Submission process data uploaded to the form draft area' :
+                'No process data uploaded — submission will proceed without process data', {draftItemId});
         } catch (error) {
             // Submission must never be blocked by Process Feedback packaging.
-            console.error('[ProcessFeedback] Unexpected error during process data upload. ' +
+            debugError(windowRef, 'Unexpected error during process data upload. ' +
                 'Submission will proceed without process data.', error);
-            debugError(windowRef, 'Submission process-data upload failed', error);
-        } finally {
-            debugLog(windowRef, 'Continuing Moodle assignment submission');
-            if (assignForm.requestSubmit) {
-                assignForm.requestSubmit(submitButton);
-                return;
-            }
-            assignForm.submit();
         }
+
+        if (!uploaded) {
+            // Do not link a partly uploaded draft area to the submission.
+            setFormDraftItemId(assignForm, 0);
+        }
+
+        debugLog(windowRef, 'Continuing Moodle assignment submission');
+        if (assignForm.requestSubmit) {
+            assignForm.requestSubmit(submitButton);
+            return;
+        }
+        assignForm.submit();
     });
 };

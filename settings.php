@@ -31,7 +31,6 @@ if ($hassiteconfig) {
     );
 
     if ($ADMIN->fulltree) {
-
         $settings->add(new \local_processfeedback\admin_setting_courseids(
             'local_processfeedback/enabledassignmentincourseids',
             new lang_string('enabledassignmentincourseids', 'local_processfeedback'),

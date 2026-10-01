@@ -25,10 +25,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
-    'local/processfeedback:configure' => [
-        'captype' => 'write',
-        'contextlevel' => CONTEXT_SYSTEM,
-    ],
     'local/processfeedback:use' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,

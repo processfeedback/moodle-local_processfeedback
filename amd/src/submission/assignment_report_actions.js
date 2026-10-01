@@ -13,9 +13,20 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-import { initProcessFeedbackDashboardButton } from 'local_processfeedback/submission/dashboard_report_button';
-import { getSingleWritingProcessReportLinks, initSingleWritingProcessReportButtons } from 'local_processfeedback/submission/single_report_buttons';
-import { getProcessFeedbackZipLinks, markProcessFeedbackSubmissionTables } from 'local_processfeedback/submission/report_transfer';
+/**
+ * Assignment grading page report actions for the Process Feedback UI.
+ *
+ * @module     local_processfeedback/submission/assignment_report_actions
+ * @copyright  2026 Process Feedback
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+import {initProcessFeedbackDashboardButton} from 'local_processfeedback/submission/dashboard_report_button';
+import {
+    getSingleWritingProcessReportLinks,
+    initSingleWritingProcessReportButtons,
+} from 'local_processfeedback/submission/single_report_buttons';
+import {getProcessFeedbackZipLinks, markProcessFeedbackSubmissionTables} from 'local_processfeedback/submission/report_transfer';
 import {debugError, debugLog} from 'local_processfeedback/utils/logger';
 
 export const initAssignmentReportActions = (state, windowRef, documentRef) => {

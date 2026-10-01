@@ -37,6 +37,37 @@ const progressComplete = (progress, stepId, message = '') => {
     return Promise.resolve();
 };
 
+/**
+ * Build the process footprints for the payload, preferring the export details, then stored values, then defaults.
+ *
+ * @param {Object} state Process Feedback state.
+ * @param {Object} processFootPrints Process data read from IndexedDB.
+ * @param {Object} exportDetails Details entered in the export dialog.
+ * @return {Object}
+ */
+const buildProcessFootPrints = (state, processFootPrints, exportDetails) => {
+    const now = new Date().toISOString();
+    const footPrints = {
+        author: exportDetails.author || processFootPrints.author || state.params.userFullName,
+        courseName: processFootPrints.courseName || state.params.courseName || getString(state, 'untitledCourse'),
+        editorPathDOM: processFootPrints.editorPathDOM || '',
+        email: exportDetails.email || processFootPrints.email || state.params.userEmail,
+        institute: exportDetails.institute || processFootPrints.institute || state.params.siteName,
+        startTimeStamp: processFootPrints.startTimeStamp || now,
+        taskID: getTaskId(state),
+        taskName: exportDetails.taskName || processFootPrints.taskName || getActivityTitle(state),
+        workingText: processFootPrints.workingText || '',
+        workingTextTimeStamp: processFootPrints.workingTextTimeStamp || now,
+        timeAndTextSnapshots: processFootPrints.timeAndTextSnapshots || {},
+        taskType: 'lms-moodle',
+        textSnapshotInterval: Number(state.params.snapshotInterval || 5000),
+    };
+    if (processFootPrints.pasteEventsFull) {
+        footPrints.pasteEventsFull = processFootPrints.pasteEventsFull;
+    }
+    return footPrints;
+};
+
 export const createPayload = async(state, revisionStore, exportDetails = {}, progress = null) => {
     await progressStart(progress, 'pull', getString(state, 'exportStepPullDetail'));
     const processFootPrints = await revisionStore.fetchDataFromIdb();
@@ -45,30 +76,8 @@ export const createPayload = async(state, revisionStore, exportDetails = {}, pro
     const count = Number(processFootPrints.footprintCountsTentative) || 0;
     const expiry = processFootPrints.expiryDateForTechnicalSupport ||
         new Date(Date.now() + 1000 * 60 * 60 * 24 * 30 * 6).toISOString();
-    const snapshots = processFootPrints.timeAndTextSnapshots || {};
-    const pasteEventsFull = processFootPrints.pasteEventsFull || null;
-    const author = exportDetails.author || processFootPrints.author || state.params.userFullName;
-    const email = exportDetails.email || processFootPrints.email || state.params.userEmail;
-    const institute = exportDetails.institute || processFootPrints.institute || state.params.siteName;
-    const taskName = exportDetails.taskName || processFootPrints.taskName || getActivityTitle(state);
-    const finalProcessFootPrints = {
-        author,
-        courseName: processFootPrints.courseName || state.params.courseName || getString(state, 'untitledCourse'),
-        editorPathDOM: processFootPrints.editorPathDOM || '',
-        email,
-        institute,
-        startTimeStamp: processFootPrints.startTimeStamp || new Date().toISOString(),
-        taskID: getTaskId(state),
-        taskName,
-        workingText: processFootPrints.workingText || '',
-        workingTextTimeStamp: processFootPrints.workingTextTimeStamp || new Date().toISOString(),
-        timeAndTextSnapshots: snapshots,
-        taskType: 'lms-moodle',
-        textSnapshotInterval: Number(state.params.snapshotInterval || 5000),
-    };
-    if (pasteEventsFull) {
-        finalProcessFootPrints.pasteEventsFull = pasteEventsFull;
-    }
+    const finalProcessFootPrints = buildProcessFootPrints(state, processFootPrints, exportDetails);
+    const {author, email, institute, taskName} = finalProcessFootPrints;
 
     // Optional payload encryption is future work. This browser-only export
     // intentionally marks the payload as not encrypted.
@@ -95,8 +104,8 @@ export const createPayload = async(state, revisionStore, exportDetails = {}, pro
     debugLog(null, 'Process payload created', {
         taskID: finalProcessFootPrints.taskID,
         revisionCount: count,
-        snapshotCount: Object.keys(snapshots).length,
-        hasPasteEvents: Boolean(pasteEventsFull),
+        snapshotCount: Object.keys(finalProcessFootPrints.timeAndTextSnapshots).length,
+        hasPasteEvents: Boolean(finalProcessFootPrints.pasteEventsFull),
         projectType: payload.processPayload.metadata.projectType,
     });
     return payload;

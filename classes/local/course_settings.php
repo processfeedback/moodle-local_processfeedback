@@ -79,9 +79,11 @@ final class course_settings {
      * @return void
      */
     private static function ensure_activity_custom_field(string $modname): void {
-        if (!class_exists(\core_customfield\handler::class) ||
+        if (
+            !class_exists(\core_customfield\handler::class) ||
                 !class_exists(\core_customfield\field_controller::class) ||
-                !class_exists(\core_customfield\category_controller::class)) {
+                !class_exists(\core_customfield\category_controller::class)
+        ) {
             return;
         }
 
@@ -186,7 +188,10 @@ final class course_settings {
         }
 
         $courseids = $normalisedcourseids === '' ? [] : array_map('intval', explode(',', $normalisedcourseids));
-        $courseids = array_values(array_filter($courseids, static fn(int $courseid): bool => $courseid > 0 && $courseid !== SITEID));
+        $courseids = array_values(array_filter(
+            $courseids,
+            static fn(int $courseid): bool => $courseid > 0 && $courseid !== SITEID
+        ));
 
         self::clear_disallowed_course_values_for_activity($modname, $courseids);
 

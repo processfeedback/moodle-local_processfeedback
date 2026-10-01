@@ -18,7 +18,6 @@ namespace local_processfeedback\hook;
 
 use local_processfeedback\local\access;
 use local_processfeedback\local\config;
-use local_processfeedback\local\teacher_notice;
 
 /**
  * Loads the Process Feedback recorder on supported activity pages.

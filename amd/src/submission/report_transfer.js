@@ -13,7 +13,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-import Str from 'core/str';
+/**
+ * Report transfer helpers that send process data ZIP links to Process Feedback.
+ *
+ * @module     local_processfeedback/submission/report_transfer
+ * @copyright  2026 Process Feedback
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+import {getString} from 'core/str';
 import {debugLog} from 'local_processfeedback/utils/logger';
 
 export const ZIP_LINK_SELECTOR = 'a[data-processfeedback-zip="true"]';
@@ -30,7 +38,7 @@ const EXPLORER_ORIGIN = 'https://app.processfeedback.org';
 const READY_TIMEOUT_MS = 60000;
 const ZIP_TRANSFER_CHUNK_SIZE = 5;
 
-const getLanguageString = (key, value = undefined) => Str.get_string(key, 'local_processfeedback', value);
+const getLanguageString = (key, value = undefined) => getString(key, 'local_processfeedback', value);
 
 const getDashboardOpenedMessage = (count) => getLanguageString(
     count === 1 ? 'reportdashboardopenedone' : 'reportdashboardopenedmany',
@@ -109,13 +117,13 @@ export const createProcessFeedbackSubmissionMessage = (submission, batchId, chun
     submissions: [submission],
 });
 
-const collectProcessFeedbackSubmission = async (link, windowRef) => {
+const collectProcessFeedbackSubmission = async(link, windowRef) => {
     debugLog(windowRef, 'Collecting Process Feedback ZIP submission', {
         filename: link.dataset.filename || '',
         submissionId: link.dataset.submissionId || '',
         hasHref: Boolean(link.href),
     });
-    const response = await windowRef.fetch(link.href, { credentials: 'same-origin' });
+    const response = await windowRef.fetch(link.href, {credentials: 'same-origin'});
     if (!response.ok) {
         throw new Error(`Could not read ${link.dataset.filename || link.href}: ${response.status}`);
     }
@@ -146,56 +154,69 @@ const createAbortError = () => {
     return error;
 };
 
-const waitForExplorerReady = (targetWindow, windowRef, status = null) => new Promise((resolve, reject) => {
-    let isReady = false;
-    let unregisterCancel = null;
-    const removeListener = () => {
-        windowRef.removeEventListener('message', onMessage);
-        if (unregisterCancel) {
-            unregisterCancel();
-            unregisterCancel = null;
-        }
-    };
-    const timeout = windowRef.setTimeout(() => {
-        removeListener();
-        debugLog(windowRef, 'ProcessFeedback ready wait timed out');
-        reject(new Error('ProcessFeedback did not become ready in time.'));
-    }, READY_TIMEOUT_MS);
-    const cancel = () => {
-        windowRef.clearTimeout(timeout);
-        removeListener();
-        debugLog(windowRef, 'ProcessFeedback ready wait cancelled');
-        reject(createAbortError());
-    };
+const waitForExplorerReady = (targetWindow, windowRef, status = null) => {
+    let dispose = () => undefined;
+    const ready = new Promise((resolve, reject) => {
+        let isReady = false;
+        let unregisterCancel = null;
+        const removeListener = () => {
+            windowRef.removeEventListener('message', onMessage);
+            if (unregisterCancel) {
+                unregisterCancel();
+                unregisterCancel = null;
+            }
+        };
+        dispose = () => {
+            windowRef.clearTimeout(timeout);
+            removeListener();
+        };
+        const timeout = windowRef.setTimeout(() => {
+            removeListener();
+            debugLog(windowRef, 'ProcessFeedback ready wait timed out');
+            reject(new Error('ProcessFeedback did not become ready in time.'));
+        }, READY_TIMEOUT_MS);
+        const cancel = () => {
+            windowRef.clearTimeout(timeout);
+            removeListener();
+            debugLog(windowRef, 'ProcessFeedback ready wait cancelled');
+            reject(createAbortError());
+        };
 
-    if (status && typeof status.onCancel === 'function') {
-        unregisterCancel = status.onCancel(cancel);
-    }
-
-    function onMessage(event) {
-        if (isReady) {
-            return;
-        }
-        if (event.origin !== EXPLORER_ORIGIN || event.source !== targetWindow) {
-            return;
-        }
-        if (!event.data || event.data.type !== 'READY') {
-            return;
+        if (status && typeof status.onCancel === 'function') {
+            unregisterCancel = status.onCancel(cancel);
         }
 
-        isReady = true;
-        windowRef.clearTimeout(timeout);
-        debugLog(windowRef, 'ProcessFeedback ready message received');
-        resolve(removeListener);
-    }
+        /**
+         * Handle the READY message from the Process Feedback explorer window.
+         *
+         * @param {MessageEvent} event Message event.
+         */
+        function onMessage(event) {
+            if (isReady) {
+                return;
+            }
+            if (event.origin !== EXPLORER_ORIGIN || event.source !== targetWindow) {
+                return;
+            }
+            if (!event.data || event.data.type !== 'READY') {
+                return;
+            }
 
-    windowRef.addEventListener('message', onMessage);
-    debugLog(windowRef, 'Waiting for ProcessFeedback ready message', {
-        timeoutMs: READY_TIMEOUT_MS,
+            isReady = true;
+            windowRef.clearTimeout(timeout);
+            debugLog(windowRef, 'ProcessFeedback ready message received');
+            resolve(removeListener);
+        }
+
+        windowRef.addEventListener('message', onMessage);
+        debugLog(windowRef, 'Waiting for ProcessFeedback ready message', {
+            timeoutMs: READY_TIMEOUT_MS,
+        });
     });
-});
+    return {ready, dispose};
+};
 
-const sendSubmissionChunk = async (batchId, links, chunkIndex, totalChunks, targetWindow, windowRef) => {
+const sendSubmissionChunk = async(batchId, links, chunkIndex, totalChunks, targetWindow, windowRef) => {
     const submissions = [];
     const transfers = [];
     debugLog(windowRef, 'Preparing ProcessFeedback submission chunk', {
@@ -237,6 +258,28 @@ const buildExplorerUrl = (params = {}) => {
     return url.href;
 };
 
+/**
+ * Open the Process Feedback explorer in a new tab and start waiting for it to be ready.
+ *
+ * Call this directly from the click handler so the browser allows the new tab. The tab opens on the
+ * explorer page itself, so it loads while the data is prepared instead of showing a blank page.
+ *
+ * @param {Window} windowRef Window reference.
+ * @param {Object} explorerParams Explorer URL parameters.
+ * @param {Object|null} status Progress reporter used for cancellation, if any.
+ * @return {Object|null} {targetWindow, ready, dispose}, or null when the browser blocked the tab.
+ */
+export const openProcessFeedbackWindow = (windowRef, explorerParams = {}, status = null) => {
+    const targetWindow = windowRef.open(buildExplorerUrl(explorerParams), '_blank');
+    if (!targetWindow) {
+        return null;
+    }
+    const {ready, dispose} = waitForExplorerReady(targetWindow, windowRef, status);
+    // The data is sent later; mark the promise handled so an early timeout or cancel is not reported as unhandled.
+    ready.catch(() => undefined);
+    return {targetWindow, ready, dispose};
+};
+
 const startProgressStep = async(status, stepId, message) => {
     if (status && typeof status.throwIfCancelled === 'function') {
         status.throwIfCancelled();
@@ -262,7 +305,7 @@ const setStatusText = (status, message) => {
     }
 };
 
-export const sendZipLinksToProcessFeedback = async (
+export const sendZipLinksToProcessFeedback = async(
     links,
     button,
     status,
@@ -274,15 +317,14 @@ export const sendZipLinksToProcessFeedback = async (
         linkCount: links.length,
         explorerParams,
     });
-    const targetWindow = windowRef.open('', '_blank');
-    if (!targetWindow) {
+    const reportWindow = openProcessFeedbackWindow(windowRef, explorerParams);
+    if (!reportWindow) {
         throw new Error(await getLanguageString('reporterrorpopupblocked'));
     }
+    const {targetWindow} = reportWindow;
 
     status.textContent = await getLanguageString('reportwaiting');
-    const readyPromise = waitForExplorerReady(targetWindow, windowRef);
-    targetWindow.location.href = buildExplorerUrl(explorerParams);
-    const removeReadyListener = await readyPromise;
+    const removeReadyListener = await reportWindow.ready;
 
     try {
         const batchId = `processfeedback-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -315,22 +357,28 @@ export const sendZipLinksToProcessFeedback = async (
     });
 };
 
-export const sendZipBlobToProcessFeedback = async(blob, metadata, status, windowRef, explorerParams = {}, existingTargetWindow = null) => {
+export const sendZipBlobToProcessFeedback = async(
+    blob,
+    metadata,
+    status,
+    windowRef,
+    explorerParams = {},
+    openedReportWindow = null
+) => {
     debugLog(windowRef, 'Sending ZIP blob', {
         filename: metadata && metadata.filename ? metadata.filename : '',
         size: blob.size,
         explorerParams,
-        hasExistingTargetWindow: Boolean(existingTargetWindow),
+        hasOpenedReportWindow: Boolean(openedReportWindow),
     });
-    const targetWindow = existingTargetWindow || windowRef.open('', '_blank');
-    if (!targetWindow) {
+    const reportWindow = openedReportWindow || openProcessFeedbackWindow(windowRef, explorerParams, status);
+    if (!reportWindow) {
         throw new Error(await getLanguageString('reporterrorpopupblocked'));
     }
+    const {targetWindow} = reportWindow;
 
     await startProgressStep(status, 'transfer', await getLanguageString('reportwaiting'));
-    const readyPromise = waitForExplorerReady(targetWindow, windowRef, status);
-    targetWindow.location.href = buildExplorerUrl(explorerParams);
-    const removeReadyListener = await readyPromise;
+    const removeReadyListener = await reportWindow.ready;
     throwIfCancelled(status);
 
     try {

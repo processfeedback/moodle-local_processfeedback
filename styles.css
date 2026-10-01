@@ -108,6 +108,16 @@
     width: 100%;
 }
 
+/* The Process Feedback report page link in the download message: a plain, underlined blue link. */
+.local-processfeedback-export-status .local-processfeedback-explore-link,
+.local-processfeedback-export-status .local-processfeedback-explore-link:hover,
+.local-processfeedback-export-status .local-processfeedback-explore-link:focus {
+    color: #0c65b4;
+    font-weight: 400;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
 .local-processfeedback-export-footer {
     justify-content: space-between;
 }

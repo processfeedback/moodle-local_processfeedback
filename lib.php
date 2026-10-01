@@ -15,28 +15,12 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Legacy callback bridge for the Process Feedback local plugin.
+ * Moodle callbacks for the Process Feedback local plugin.
  *
  * @package    local_processfeedback
  * @copyright  2026 Process Feedback
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-/**
- * Process Feedback course settings are managed by Moodle course custom fields.
- *
- * @param navigation_node $parentnode Course navigation node.
- * @param stdClass $course Course record.
- * @param context_course $context Course context.
- * @return void
- */
-function local_processfeedback_extend_navigation_course(
-    navigation_node $parentnode,
-    stdClass $course,
-    context_course $context
-): void {
-    return;
-}
 
 /**
  * Add the Process Feedback teacher notice to assignment and forum settings forms.

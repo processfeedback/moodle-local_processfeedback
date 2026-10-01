@@ -47,7 +47,7 @@ The two plugins have access to different parts of Moodle. A **local plugin** can
 
 - A notice on enabled assignment and forum pages reminds them that Process Feedback is active.
 - An **Auto submit on assignment submission** setting for each Online text assignment. When it's on, each student's process data is submitted with their assignment. It's on by default for new assignments. *(needs both plugins)*
-- A process summary for each submission in the grading view: active writing time, snapshots count, active days, first edit, last edit, and largest single change, with a link to download the ZIP. *(needs both plugins)*
+- A process summary for each submission in the grading view: active writing time, snapshots count, active days, and last edit, with a link to download the ZIP. *(needs both plugins)*
 - A link to open each student's writing process report in a new tab. *(needs both plugins)*
 - A Writing Process Dashboard that opens all submitted reports for an assignment together. This is a beta feature and has not been thoroughly tested. *(needs both plugins)*
 
@@ -92,25 +92,27 @@ The checkbox is **ticked by default** on new assignments in enabled courses. Tea
 When auto submission is on:
 
 1. The submission form tells the student that their writing process data will be included.
-2. When they save the submission, the local plugin packages the data as a ZIP and uploads it with the form.
+2. When they save the submission, the local plugin packages the data as a ZIP and uploads it through Moodle's standard file upload (the "Upload a file" repository).
 3. The assignment submission plugin stores the ZIP with the submission and records a summary of it.
 4. Teachers see the summary in the grading view, and can download the ZIP or open the student's writing process report.
 
 ### d) Technical details for developers
 
 - The local plugin's JavaScript entry point is the `local_processfeedback/main` AMD module.
-- The assignment submission plugin adds two hidden fields to the submission form. `processfeedback_include_data` tells the local plugin whether to upload process data, and the local plugin puts the uploaded draft's item ID in `processfeedback_draftitemid`.
+- The assignment submission plugin adds two hidden fields to the submission form. `processfeedback_include_data` tells the local plugin whether to upload process data, and `processfeedback_draftitemid` holds the draft area created for the form.
+- On submit, the local plugin uploads the ZIP and `process_summary.json` into that draft area through `repository/repository_ajax.php`, so Moodle applies its upload size limits, draft area limits and antivirus scan.
 - On save, the assignment submission plugin accepts the data only if `should_accept_process_data()` returns true, which means the assignment setting is on.
-- It reads the summary metrics from `process_summary.json` inside the ZIP and saves them in the `assignsubmission_processfeedback` table. It then moves the ZIP into the submission's `process_files` file area.
+- It checks that the draft area holds exactly one ZIP and `process_summary.json` within the upload size limits, reads the summary metrics and saves them in the `assignsubmission_processfeedback` table, then moves both files into the submission's `process_files` file area. Anything else is ignored and the submission is saved without process data.
 
 ## D. Installation requirements
 
-- Moodle 4.4+ (`$plugin->requires = 2024042200`)
+- Moodle 4.4 to 5.2 (`$plugin->requires = 2024042200`, `$plugin->supported = [404, 502]`)
 - JavaScript and IndexedDB enabled in the student's browser
-- For `assignsubmission_processfeedback`: the Moodle assignment activity (`mod_assign`) and `local_processfeedback` version `2026092400` (0.5.1) or newer
+- For `assignsubmission_processfeedback`: the Moodle assignment activity (`mod_assign`) and `local_processfeedback` version `2026093000` (0.5.2) or newer
+- The **"Upload a file" repository** enabled and available to students (it is by default). Process data is uploaded through it; when it is disabled, submissions are saved without process data.
 - **Report-page domain recognition:** for the **Open report** button to open reports automatically, the Moodle site's domain must be added to Process Feedback's recognized-domain list. Institutions interested in piloting should contact us to have their domain added. Until then, users can download the process-data ZIP and load it manually in the Process Feedback report page.
 
-Current release: `0.5.1` (both plugins).
+Current release: `0.5.2` (both plugins).
 
 ## E. Steps for installing the plugins
 
@@ -178,7 +180,6 @@ Process Feedback runs only when the activity module is supported, the course is 
 
 `local_processfeedback` defines:
 
-- `local/processfeedback:configure`: configure site settings.
 - `local/processfeedback:use`: use Process Feedback in supported module contexts.
 - `local/processfeedback:viewreports`: view Process Feedback reports.
 
@@ -220,7 +221,7 @@ For `assignsubmission_processfeedback`:
 
 - Unlike the local plugin, which keeps process data in the student's browser, this plugin stores process data in Moodle when a student submits an assignment with auto-submission enabled.
 - It stores process summary metadata in the `assignsubmission_processfeedback` database table and the submitted process-data ZIP file in Moodle's `core_files` subsystem.
-- The database record contains the assignment ID, submission ID, edit time, revision count, active days, first edit timestamp, last edit timestamp, and largest change size.
+- The database record contains the assignment ID, submission ID, edit time, revision count, active days, first edit timestamp, and last edit timestamp.
 - The submitted ZIP file and summary values may contain personal or educational data.
 - The privacy provider supports context discovery, data export, and deletion for Moodle privacy (GDPR) requests.
 - Uninstalling the plugin permanently deletes its database table and all stored process-data ZIP files; export any data you need to keep first.
@@ -229,18 +230,25 @@ Writing process data should be handled with permission from the author and follo
 
 ## K. Development
 
-`local_processfeedback` bundles AMD JavaScript. From a checkout of the [`moodle-local_processfeedback`](https://github.com/processfeedback/moodle-local_processfeedback) repository, build it with:
+`local_processfeedback` bundles AMD JavaScript. Sources live in `amd/src` and are built into `amd/build` with Moodle's standard Grunt pipeline. With the plugin installed at `local/processfeedback` in a Moodle checkout, run from the Moodle root:
 
 ```bash
 npm install
-npm run build
+npx grunt amd --root=local/processfeedback
 ```
+
+See [Moodle's JavaScript modules guide](https://moodledev.io/docs/guides/javascript/modules) for details.
 
 `assignsubmission_processfeedback` is PHP only and needs no build step.
 
 ## L. Issues
 
-Report bugs and feature requests on our [contact page](https://processfeedback.org/contact/).
+Report bugs and feature requests in the public issue tracker of the plugin concerned:
+
+- `local_processfeedback`: https://github.com/processfeedback/moodle-local_processfeedback/issues
+- `assignsubmission_processfeedback`: https://github.com/processfeedback/moodle-assignsubmission_processfeedback/issues
+
+For other questions, use our [contact page](https://processfeedback.org/contact/).
 
 ## M. License
 

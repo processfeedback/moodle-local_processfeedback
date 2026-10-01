@@ -24,8 +24,11 @@
 import {createPayload} from 'local_processfeedback/services/payload';
 import {buildZipBlob, getProcessZipFilename} from 'local_processfeedback/services/zip_builder';
 import {getString} from 'local_processfeedback/state/store';
-import {sendZipBlobToProcessFeedback} from 'local_processfeedback/submission/report_transfer';
+import {openProcessFeedbackWindow, sendZipBlobToProcessFeedback} from 'local_processfeedback/submission/report_transfer';
 import {debugError, debugLog} from 'local_processfeedback/utils/logger';
+
+/** Explorer URL parameters for a single student's report. */
+const EXPLORER_PARAMS = {isMoodleSingle: 'true'};
 
 const downloadBlob = (windowRef, documentRef, blob, filename) => {
     const url = URL.createObjectURL(blob);
@@ -152,14 +155,17 @@ export const createZipExportService = (state, revisionStore, autosaveService, pa
 
     const openReport = async(exportDetails = {}, status = null) => {
         debugLog(windowRef, 'Open report requested');
+        // Open the report tab before anything is awaited, while the click still counts as a user action, and
+        // open it on the Process Feedback page so it loads while the ZIP is built instead of staying blank.
+        const reportWindow = openProcessFeedbackWindow(windowRef, EXPLORER_PARAMS, status);
         await progressStart(status, 'openreport', getString(state, 'exportStepOpenReportDetail'));
-        const targetWindow = windowRef.open('', '_blank');
-        if (!targetWindow) {
+        if (!reportWindow) {
             const errorMessage = getString(state, 'exportErrorPopupBlocked');
             progressError(status, 'openreport', errorMessage);
             debugError(windowRef, 'Open report failed: popup blocked');
             throw new Error(errorMessage);
         }
+        const {targetWindow} = reportWindow;
         let unregisterCancel = null;
         if (status && typeof status.onCancel === 'function') {
             unregisterCancel = status.onCancel(() => {
@@ -188,9 +194,7 @@ export const createZipExportService = (state, revisionStore, autosaveService, pa
                 studentId: Number(state.params.userId || 0),
                 filename,
                 url: windowRef.location.href,
-            }, status || panel, windowRef, {
-                isMoodleSingle: 'true',
-            }, targetWindow);
+            }, status || panel, windowRef, EXPLORER_PARAMS, reportWindow);
             await progressComplete(status, 'transfer');
             panel.setStatus(getString(state, 'exportReportReady'), 'text-success');
             debugLog(windowRef, 'Report opened in ProcessFeedback', {
@@ -199,6 +203,7 @@ export const createZipExportService = (state, revisionStore, autosaveService, pa
             });
             return true;
         } finally {
+            reportWindow.dispose();
             if (unregisterCancel) {
                 unregisterCancel();
             }

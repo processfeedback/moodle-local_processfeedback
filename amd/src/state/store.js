@@ -21,97 +21,124 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-const normaliseStrings = (strings = {}) => ({
-    captureIntro: strings.captureIntro || strings.captureintro || '',
-    downloadZip: strings.downloadZip || strings.downloadzip || '',
-    reportButtonLabel: strings.reportButtonLabel || strings.reportbuttonlabel || '',
-    panelDescription: strings.panelDescription || strings.paneldescription || '',
-    learnMore: strings.learnMore || strings.learnmore || '',
-    downloadButtonTitleIntro: strings.downloadButtonTitleIntro || strings.downloadbuttontitleintro || '',
-    downloadButtonTitleAction: strings.downloadButtonTitleAction || strings.downloadbuttontitleaction || '',
-    downloadButtonTitleRevision: strings.downloadButtonTitleRevision || strings.downloadbuttontitlerevision || '',
-    savedRevision: strings.savedRevision || strings.savedrevision || '',
-    typingReady: strings.typingReady || strings.typingready || '',
-    downloadReady: strings.downloadReady || strings.downloadready || '',
-    downloadEmpty: strings.downloadEmpty || strings.downloadempty || '',
-    zipCreateFailed: strings.zipCreateFailed || strings.zipcreatefailed || '',
-    zipReadmeGenerated: strings.zipReadmeGenerated || strings.zipreadmegenerated || '',
-    zipReadmeData: strings.zipReadmeData || strings.zipreadmedata || '',
-    zipReadmePolicy: strings.zipReadmePolicy || strings.zipreadmepolicy || '',
-    captureFailed: strings.captureFailed || strings.capturefailed || '',
-    storageUpdateFailed: strings.storageUpdateFailed || strings.storageupdatefailed || '',
-    untitledTask: strings.untitledTask || strings.untitledtask || '',
-    untitledCourse: strings.untitledCourse || strings.untitledcourse || '',
-    exportModalTitle: strings.exportModalTitle || strings.exportmodaltitle || '',
-    exportModalSubtitle: strings.exportModalSubtitle || strings.exportmodalsubtitle || '',
-    exportFieldTitle: strings.exportFieldTitle || strings.exportfieldtitle || '',
-    exportFieldName: strings.exportFieldName || strings.exportfieldname || '',
-    exportFieldInstitution: strings.exportFieldInstitution || strings.exportfieldinstitution || '',
-    exportFieldEmail: strings.exportFieldEmail || strings.exportfieldemail || '',
-    exportClose: strings.exportClose || strings.exportclose || '',
-    exportProcessData: strings.exportProcessData || strings.exportprocessdata || '',
-    exportOpenReportButton: strings.exportOpenReportButton || strings.exportopenreportbutton || '',
-    exportPackagingTitle: strings.exportPackagingTitle || strings.exportpackagingtitle || '',
-    exportStepsReady: strings.exportStepsReady || strings.exportstepsready || '',
-    exportStepQueued: strings.exportStepQueued || strings.exportstepqueued || '',
-    exportStepRunning: strings.exportStepRunning || strings.exportsteprunning || '',
-    exportStepDone: strings.exportStepDone || strings.exportstepdone || '',
-    exportStepError: strings.exportStepError || strings.exportsteperror || '',
-    exportStepOpenReport: strings.exportStepOpenReport || strings.exportstepopenreport || '',
-    exportStepOpenReportDetail: strings.exportStepOpenReportDetail || strings.exportstepopenreportdetail || '',
-    exportStepCapture: strings.exportStepCapture || strings.exportstepcapture || '',
-    exportStepCaptureDetail: strings.exportStepCaptureDetail || strings.exportstepcapturedetail || '',
-    exportStepPaste: strings.exportStepPaste || strings.exportsteppaste || '',
-    exportStepPasteDetail: strings.exportStepPasteDetail || strings.exportsteppastedetail || '',
-    exportStepCount: strings.exportStepCount || strings.exportstepcount || '',
-    exportStepCountDetail: strings.exportStepCountDetail || strings.exportstepcountdetail || '',
-    exportStepPull: strings.exportStepPull || strings.exportsteppull || '',
-    exportStepPullDetail: strings.exportStepPullDetail || strings.exportsteppulldetail || '',
-    exportStepPayload: strings.exportStepPayload || strings.exportsteppayload || '',
-    exportStepPayloadDetail: strings.exportStepPayloadDetail || strings.exportsteppayloaddetail || '',
-    exportStepZip: strings.exportStepZip || strings.exportstepzip || '',
-    exportStepZipDetail: strings.exportStepZipDetail || strings.exportstepzipdetail || '',
-    exportStepDownload: strings.exportStepDownload || strings.exportstepdownload || '',
-    exportStepDownloadDetail: strings.exportStepDownloadDetail || strings.exportstepdownloaddetail || '',
-    exportStepTransfer: strings.exportStepTransfer || strings.exportsteptransfer || '',
-    exportErrorPopupBlocked: strings.exportErrorPopupBlocked || strings.exporterrorpopupblocked || '',
-    exportErrorExplorerTimeout: strings.exportErrorExplorerTimeout || strings.exporterrorexplorertimeout || '',
-    exportDownloadedTitle: strings.exportDownloadedTitle || strings.exportdownloadedtitle || '',
-    exportDownloadedPrefix: strings.exportDownloadedPrefix || strings.exportdownloadedprefix || '',
-    exportReportReady: strings.exportReportReady || strings.exportreportready || '',
-    exportOpenReport: strings.exportOpenReport || strings.exportopenreport || '',
-    savingProcessData: strings.savingProcessData || strings.savingprocessdata || '',
-});
+/** Language string keys passed to the UI; each also accepts its lowercase form. */
+const STRING_KEYS = [
+    'captureIntro',
+    'downloadZip',
+    'reportButtonLabel',
+    'panelDescription',
+    'learnMore',
+    'downloadButtonTitleIntro',
+    'downloadButtonTitleAction',
+    'downloadButtonTitleRevision',
+    'savedRevision',
+    'typingReady',
+    'downloadReady',
+    'downloadEmpty',
+    'zipCreateFailed',
+    'zipReadmeGenerated',
+    'zipReadmeData',
+    'zipReadmePolicy',
+    'captureFailed',
+    'storageUpdateFailed',
+    'untitledTask',
+    'untitledCourse',
+    'exportModalTitle',
+    'exportModalSubtitle',
+    'exportFieldTitle',
+    'exportFieldName',
+    'exportFieldInstitution',
+    'exportFieldEmail',
+    'exportClose',
+    'exportProcessData',
+    'exportOpenReportButton',
+    'exportPackagingTitle',
+    'exportStepsReady',
+    'exportStepQueued',
+    'exportStepRunning',
+    'exportStepDone',
+    'exportStepError',
+    'exportStepOpenReport',
+    'exportStepOpenReportDetail',
+    'exportStepCapture',
+    'exportStepCaptureDetail',
+    'exportStepPaste',
+    'exportStepPasteDetail',
+    'exportStepCount',
+    'exportStepCountDetail',
+    'exportStepPull',
+    'exportStepPullDetail',
+    'exportStepPayload',
+    'exportStepPayloadDetail',
+    'exportStepZip',
+    'exportStepZipDetail',
+    'exportStepDownload',
+    'exportStepDownloadDetail',
+    'exportStepTransfer',
+    'exportErrorPopupBlocked',
+    'exportErrorExplorerTimeout',
+    'exportDownloadedTitle',
+    'exportDownloadedPrefix',
+    'exportReportReady',
+    'exportOpenReport',
+    'savingProcessData',
+];
+
+/**
+ * Return the first truthy value of the given keys, or the fallback.
+ *
+ * @param {Object} source Source object.
+ * @param {string[]} keys Keys in priority order.
+ * @param {*} fallback Value returned when no key has a truthy value.
+ * @return {*}
+ */
+const pickValue = (source, keys, fallback) => {
+    const key = keys.find((candidate) => source[candidate]);
+    return key ? source[key] : fallback;
+};
+
+/**
+ * Whether any of the given keys is strictly true.
+ *
+ * @param {Object} source Source object.
+ * @param {string[]} keys Keys to check.
+ * @return {boolean}
+ */
+const pickFlag = (source, keys) => keys.some((key) => source[key] === true);
+
+const normaliseStrings = (strings = {}) => STRING_KEYS.reduce((normalised, key) => {
+    normalised[key] = pickValue(strings, [key, key.toLowerCase()], '');
+    return normalised;
+}, {});
 
 const normaliseParams = (params = {}) => ({
-    captureAllowed: params.captureAllowed === true || params.captureallowed === true,
-    captureEnabledByDefault: params.captureEnabledByDefault === true || params.captureenabledbydefault === true,
-    contextEnabled: params.contextEnabled === true || params.contextenabled === true,
-    canUse: params.canUse === true || params.canuse === true,
-    canExportProcessData: params.canExportProcessData === true || params.canexportprocessdata === true,
-    contextId: Number(params.contextId || params.contextid || 0),
-    courseId: Number(params.courseId || params.courseid || 0),
-    courseName: params.courseName || params.coursename || '',
-    cmId: Number(params.cmId || params.cmid || 0),
-    moduleName: params.moduleName || params.modName || params.modname || 'assign',
-    activityInstanceId: Number(
-        params.activityInstanceId ||
-        params.activityinstanceid ||
-        params.assignmentInstanceId ||
-        params.assignmentinstanceid ||
+    captureAllowed: pickFlag(params, ['captureAllowed', 'captureallowed']),
+    captureEnabledByDefault: pickFlag(params, ['captureEnabledByDefault', 'captureenabledbydefault']),
+    contextEnabled: pickFlag(params, ['contextEnabled', 'contextenabled']),
+    canUse: pickFlag(params, ['canUse', 'canuse']),
+    canExportProcessData: pickFlag(params, ['canExportProcessData', 'canexportprocessdata']),
+    contextId: Number(pickValue(params, ['contextId', 'contextid'], 0)),
+    courseId: Number(pickValue(params, ['courseId', 'courseid'], 0)),
+    courseName: pickValue(params, ['courseName', 'coursename'], ''),
+    cmId: Number(pickValue(params, ['cmId', 'cmid'], 0)),
+    moduleName: pickValue(params, ['moduleName', 'modName', 'modname'], 'assign'),
+    activityInstanceId: Number(pickValue(
+        params,
+        ['activityInstanceId', 'activityinstanceid', 'assignmentInstanceId', 'assignmentinstanceid'],
         0
-    ),
-    activityTitle: params.activityTitle || params.activitytitle || params.assignmentTitle || params.assignmenttitle || '',
-    assignmentInstanceId: Number(params.assignmentInstanceId || params.assignmentinstanceid || params.activityInstanceId || 0),
-    assignmentTitle: params.assignmentTitle || params.assignmenttitle || params.activityTitle || params.activitytitle || '',
-    pageUrl: params.pageUrl || params.pageurl || '',
-    siteName: params.siteName || params.sitename || '',
-    siteHash: params.siteHash || params.sitehash || '',
-    userId: Number(params.userId || params.userid || 0),
-    userFullName: params.userFullName || params.userfullname || '',
-    userEmail: params.userEmail || params.useremail || '',
-    projectId: params.projectId || params.projectid || '',
-    snapshotInterval: Number(params.snapshotInterval || params.snapshotinterval || 5000),
+    )),
+    activityTitle: pickValue(params, ['activityTitle', 'activitytitle', 'assignmentTitle', 'assignmenttitle'], ''),
+    assignmentInstanceId: Number(pickValue(params, ['assignmentInstanceId', 'assignmentinstanceid', 'activityInstanceId'], 0)),
+    assignmentTitle: pickValue(params, ['assignmentTitle', 'assignmenttitle', 'activityTitle', 'activitytitle'], ''),
+    pageUrl: pickValue(params, ['pageUrl', 'pageurl'], ''),
+    siteName: pickValue(params, ['siteName', 'sitename'], ''),
+    siteHash: pickValue(params, ['siteHash', 'sitehash'], ''),
+    userId: Number(pickValue(params, ['userId', 'userid'], 0)),
+    userFullName: pickValue(params, ['userFullName', 'userfullname'], ''),
+    userEmail: pickValue(params, ['userEmail', 'useremail'], ''),
+    projectId: pickValue(params, ['projectId', 'projectid'], ''),
+    uploadRepositoryId: Number(pickValue(params, ['uploadRepositoryId', 'uploadrepositoryid'], 0)),
+    snapshotInterval: Number(pickValue(params, ['snapshotInterval', 'snapshotinterval'], 5000)),
     compressSnapshots: false,
     strings: normaliseStrings(params.strings),
 });

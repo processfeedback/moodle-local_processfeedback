@@ -14,78 +14,72 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Debug logging helpers for the Process Feedback UI.
+ * Logging helpers for the Process Feedback UI.
+ *
+ * Messages go through core/log, whose level Moodle sets per page: warnings and errors are
+ * always shown, debug messages only when the site has developer debugging enabled.
  *
  * @module     local_processfeedback/utils/logger
  * @copyright  2026 Process Feedback
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-export const DEBUG_LOG_KEY = 'local_processfeedback:debug';
-export const DEBUG_EXPORT_STEPS_KEY = 'local_processfeedback:debug_export_steps';
+import Config from 'core/config';
+import Log from 'core/log';
 
-const LOG_PREFIX = '[ProcessFeedback]';
-const LEGACY_DEBUG_LOG_KEYS = ['processfeedbackDebug', 'localProcessFeedbackDebug'];
-const LEGACY_DEBUG_EXPORT_STEPS_KEYS = ['DEBUG_EXPORT_STEPS', 'processfeedbackDebugExportSteps'];
-const TRUE_VALUES = ['1', 'true', 'yes', 'on', 'debug'];
+const LOG_SOURCE = 'local_processfeedback';
 
-const getWindowRef = (windowRef = null) => windowRef || (typeof window !== 'undefined' ? window : null);
-
-const getLocalStorageValue = (windowRef, key) => {
-    const currentWindow = getWindowRef(windowRef);
-    try {
-        if (!currentWindow || !currentWindow.localStorage) {
-            return '';
-        }
-        return currentWindow.localStorage.getItem(key) || '';
-    } catch (error) {
+/**
+ * Convert optional log details to text, because core/log only prints a single message.
+ *
+ * @param {*} details Extra details for the message.
+ * @return {string}
+ */
+const formatDetails = (details) => {
+    if (details === null || typeof details === 'undefined') {
         return '';
     }
+    // Duck-type errors so ones created in another window or frame are still readable.
+    if (typeof details === 'object' && typeof details.message === 'string' && ('stack' in details || 'name' in details)) {
+        return details.stack || `${details.name}: ${details.message}`;
+    }
+    if (typeof details === 'string') {
+        return details;
+    }
+    try {
+        return JSON.stringify(details);
+    } catch (error) {
+        return String(details);
+    }
 };
 
-const isTruthyValue = (value) => TRUE_VALUES.indexOf(String(value || '').trim().toLowerCase()) !== -1;
-
-const hasTruthyLocalStorageValue = (windowRef, keys) => keys.some((key) => (
-    isTruthyValue(getLocalStorageValue(windowRef, key))
-));
-
-export const isDebugLoggingEnabled = (windowRef = null) => hasTruthyLocalStorageValue(
-    windowRef,
-    [DEBUG_LOG_KEY].concat(LEGACY_DEBUG_LOG_KEYS)
-);
-
-export const isDebugExportStepsEnabled = (windowRef = null) => hasTruthyLocalStorageValue(
-    windowRef,
-    [DEBUG_EXPORT_STEPS_KEY].concat(LEGACY_DEBUG_EXPORT_STEPS_KEYS)
-);
-
-const writeConsole = (method, windowRef, message, details = null) => {
-    const currentWindow = getWindowRef(windowRef);
-    if (!isDebugLoggingEnabled(currentWindow) || !currentWindow || !currentWindow.console) {
-        return;
-    }
-
-    const consoleMethod = currentWindow.console[method] || currentWindow.console.log;
-    if (typeof consoleMethod !== 'function') {
-        return;
-    }
-
-    if (details === null || typeof details === 'undefined') {
-        consoleMethod.call(currentWindow.console, LOG_PREFIX, message);
-        return;
-    }
-
-    consoleMethod.call(currentWindow.console, LOG_PREFIX, message, details);
+const formatMessage = (message, details) => {
+    const detailText = formatDetails(details);
+    return detailText ? `${message} ${detailText}` : message;
 };
+
+/**
+ * Whether the site has developer debugging enabled.
+ *
+ * @return {boolean}
+ */
+export const isDeveloperDebugEnabled = () => Boolean(Config.developerdebug);
+
+/**
+ * Whether export progress steps should be slowed down so they can be inspected.
+ *
+ * @return {boolean}
+ */
+export const isDebugExportStepsEnabled = () => isDeveloperDebugEnabled();
 
 export const debugLog = (windowRef, message, details = null) => {
-    writeConsole('log', windowRef, message, details);
+    Log.debug(formatMessage(message, details), LOG_SOURCE);
 };
 
 export const debugWarn = (windowRef, message, details = null) => {
-    writeConsole('warn', windowRef, message, details);
+    Log.warn(formatMessage(message, details), LOG_SOURCE);
 };
 
 export const debugError = (windowRef, message, details = null) => {
-    writeConsole('error', windowRef, message, details);
+    Log.error(formatMessage(message, details), LOG_SOURCE);
 };

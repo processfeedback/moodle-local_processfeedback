@@ -23,72 +23,19 @@
 
 import {createPayload} from 'local_processfeedback/services/payload';
 import {buildZipBlob, getProcessZipFilename} from 'local_processfeedback/services/zip_builder';
-import {DiffMatchPatch} from 'local_processfeedback/diff_match_patch';
 import {getString} from 'local_processfeedback/state/store';
-import {debugLog, debugError} from 'local_processfeedback/utils/logger';
+import {debugError, debugLog, debugWarn} from 'local_processfeedback/utils/logger';
 import Config from 'core/config';
 
 const SUMMARY_FILENAME = 'process_summary.json';
 const MAX_ACTIVE_GAP_MS = 300000;
-const DIFF_DELETE = -1;
-const DIFF_INSERT = 1;
-
-const dmp = new DiffMatchPatch();
-
-/** LocalStorage key to bypass the entire Process Feedback upload for debugging. */
-const DEBUG_BYPASS_KEY = 'pf_debug_bypass_upload';
 
 const getSortedSnapshotKeys = (timeAndTextSnapshots) => Object.keys(timeAndTextSnapshots || {}).sort();
-
-const getSnapshotText = (snapshot) => {
-    if (!snapshot || typeof snapshot.text === 'undefined' || snapshot.text === null) {
-        return '';
-    }
-    return String(snapshot.text);
-};
-
-const hasSnapshotText = (snapshot) => snapshot && typeof snapshot.text !== 'undefined' && snapshot.text !== null;
-
-const getDiffChangeChars = (snapshot) => {
-    if (!snapshot || typeof snapshot.diff !== 'string' || snapshot.diff === '') {
-        return 0;
-    }
-
-    const patches = dmp.patch_fromText(snapshot.diff);
-    return patches.reduce((total, patch) => {
-        return total + patch.diffs.reduce((patchTotal, diff) => {
-            const operation = diff[0];
-            if (operation !== DIFF_INSERT && operation !== DIFF_DELETE) {
-                return patchTotal;
-            }
-            return patchTotal + diff[1].length;
-        }, 0);
-    }, 0);
-};
-
-const getSnapshotChangeChars = (previousSnapshot, currentSnapshot) => {
-    if (currentSnapshot && typeof currentSnapshot.diff === 'string') {
-        try {
-            return getDiffChangeChars(currentSnapshot);
-        } catch (e) {
-            // Fall back for legacy or malformed records that still have full text.
-        }
-    }
-
-    if (!hasSnapshotText(currentSnapshot)) {
-        return 0;
-    }
-
-    const previousText = getSnapshotText(previousSnapshot);
-    const currentText = getSnapshotText(currentSnapshot);
-    return Math.abs(currentText.length - previousText.length);
-};
 
 const buildSummary = (timeAndTextSnapshots, revisionCount) => {
     const keys = getSortedSnapshotKeys(timeAndTextSnapshots);
     const activeDays = new Set();
     let editTimeMs = 0;
-    let largestChangeChars = 0;
 
     keys.forEach((key, index) => {
         activeDays.add(key.substring(0, 10));
@@ -106,38 +53,50 @@ const buildSummary = (timeAndTextSnapshots, revisionCount) => {
                 editTimeMs += gap;
             }
         }
-
-        largestChangeChars = Math.max(largestChangeChars, getSnapshotChangeChars(
-            timeAndTextSnapshots[previousKey],
-            timeAndTextSnapshots[key]
-        ));
     });
 
     return {
-        edit_time_seconds: Math.floor(editTimeMs / 1000),
-        revision_count: Number(revisionCount) || 0,
-        active_days: activeDays.size,
-        first_edit: keys[0] || '',
-        last_edit: keys[keys.length - 1] || '',
-        largest_change_chars: largestChangeChars,
+        'edit_time_seconds': Math.floor(editTimeMs / 1000),
+        'revision_count': Number(revisionCount) || 0,
+        'active_days': activeDays.size,
+        'first_edit': keys[0] || '',
+        'last_edit': keys[keys.length - 1] || '',
     };
 };
 
-const uploadFileToDraftArea = async(state, windowRef, draftItemId, blob, filename) => {
+/**
+ * Upload one file into the user's draft area through Moodle's core upload repository.
+ *
+ * Moodle applies its upload size limits, draft area limits and antivirus scan; the
+ * assignment submission plugin validates the files again before storing them.
+ *
+ * @param {Object} state Process Feedback state.
+ * @param {Window} windowRef Window reference.
+ * @param {number} draftItemId Draft item ID owned by the assignment submission form.
+ * @param {Blob} blob File content.
+ * @param {string} filename File name.
+ * @param {string} acceptedType Accepted file extension, for example '.zip'.
+ * @return {Promise<void>}
+ */
+const uploadFileToDraftArea = async(state, windowRef, draftItemId, blob, filename, acceptedType) => {
     debugLog(windowRef, 'Draft-area upload started', {
         draftItemId,
         filename,
         size: blob.size,
     });
     const form = new FormData();
-    form.append('file', blob, filename);
-    form.append('draftitemid', draftItemId);
-    form.append('contextid', state.params.contextId);
-    form.append('cmid', state.params.cmId);
+    form.append('repo_upload_file', blob, filename);
     form.append('sesskey', Config.sesskey);
+    form.append('repo_id', state.params.uploadRepositoryId);
+    form.append('ctx_id', state.params.contextId);
+    form.append('itemid', draftItemId);
+    form.append('savepath', '/');
+    form.append('title', filename);
+    form.append('overwrite', 1);
+    form.append('accepted_types[]', acceptedType);
 
     const response = await windowRef.fetch(
-        `${Config.wwwroot}/local/processfeedback/upload.php`,
+        `${Config.wwwroot}/repository/repository_ajax.php?action=upload`,
         {method: 'POST', body: form}
     );
 
@@ -151,13 +110,14 @@ const uploadFileToDraftArea = async(state, windowRef, draftItemId, blob, filenam
     if (json.error) {
         throw new Error(`PF upload error: ${json.error}`);
     }
+    if (json.event) {
+        throw new Error(`PF upload not stored: ${json.event}`);
+    }
 
-    const itemId = Number(json.itemid) || draftItemId;
     debugLog(windowRef, 'Draft-area upload completed', {
         filename,
-        itemId,
+        draftItemId,
     });
-    return itemId;
 };
 
 const getZipReadme = (state) => [
@@ -166,42 +126,26 @@ const getZipReadme = (state) => [
     getString(state, 'zipReadmePolicy'),
 ].join('\n');
 
-/**
- * Check whether the debug bypass flag is set in localStorage.
- * To enable: localStorage.setItem('pf_debug_bypass_upload', '1')
- * To disable: localStorage.removeItem('pf_debug_bypass_upload')
- *
- * @param {Window} windowRef
- * @returns {boolean}
- */
-const isDebugBypassEnabled = (windowRef) => {
-    try {
-        return windowRef.localStorage.getItem(DEBUG_BYPASS_KEY) === 'true';
-    } catch (e) {
-        return false;
-    }
-};
+export const uploadProcessFeedbackSubmission = async(state, revisionStore, autosaveService, windowRef, draftItemId) => {
+    debugLog(windowRef, 'Submission process-data upload requested', {draftItemId});
 
-export const uploadProcessFeedbackSubmission = async(state, revisionStore, autosaveService, windowRef) => {
-    // Debug bypass: simulates missing process data (e.g. student submitted from a different device).
-    // No upload occurs and no draft item ID is returned — submission proceeds normally without process data.
-    // To enable: localStorage.setItem('pf_debug_bypass_upload', '1')
-    // To disable: localStorage.removeItem('pf_debug_bypass_upload')
-    if (isDebugBypassEnabled(windowRef)) {
-        console.warn('[ProcessFeedback] DEBUG BYPASS ACTIVE (pf_debug_bypass_upload=1): ' +
-            'Skipping process data upload. Submission will proceed without process data. ' +
-            'This simulates a student submitting from a device with no captured writing process.');
+    if (!draftItemId) {
+        debugWarn(windowRef, 'No draft area is available for process data. ' +
+            'Submission will proceed without process data.');
         return 0;
     }
-
-    debugLog(windowRef, 'Submission process-data upload requested');
+    if (!state.params.uploadRepositoryId) {
+        debugWarn(windowRef, 'The Moodle upload repository is not available to this user. ' +
+            'Submission will proceed without process data.');
+        return 0;
+    }
 
     try {
         if (autosaveService && typeof autosaveService.captureRevision === 'function') {
             await autosaveService.captureRevision();
         }
     } catch (error) {
-        console.error('[ProcessFeedback] Failed to capture final revision before upload. ' +
+        debugError(windowRef, 'Failed to capture final revision before upload. ' +
             'Proceeding with previously saved snapshots.', error);
     }
 
@@ -210,7 +154,7 @@ export const uploadProcessFeedbackSubmission = async(state, revisionStore, autos
             await autosaveService.flushPendingPasteActions();
         }
     } catch (error) {
-        console.error('[ProcessFeedback] Failed to flush pending paste actions before upload. ' +
+        debugError(windowRef, 'Failed to flush pending paste actions before upload. ' +
             'Some paste activity may be missing from the process data.', error);
     }
 
@@ -218,7 +162,7 @@ export const uploadProcessFeedbackSubmission = async(state, revisionStore, autos
     try {
         processData = await revisionStore.fetchDataFromIdb();
     } catch (error) {
-        console.error('[ProcessFeedback] Could not read process data from IndexedDB. ' +
+        debugError(windowRef, 'Could not read process data from IndexedDB. ' +
             'This may happen if the student is submitting from a different device or browser. ' +
             'Submission will proceed without process data.', error);
         return 0;
@@ -228,7 +172,7 @@ export const uploadProcessFeedbackSubmission = async(state, revisionStore, autos
     const snapshotKeys = getSortedSnapshotKeys(timeAndTextSnapshots);
 
     if (snapshotKeys.length === 0) {
-        console.warn('[ProcessFeedback] No writing snapshots found in local storage. ' +
+        debugWarn(windowRef, 'No writing snapshots found in local storage. ' +
             'This is expected if the student wrote their work in a different browser or device. ' +
             'Submission will proceed without process data.');
         debugLog(windowRef, 'Submission process-data upload skipped: no snapshots');
@@ -239,7 +183,7 @@ export const uploadProcessFeedbackSubmission = async(state, revisionStore, autos
     try {
         revisionCount = await revisionStore.getRevisionCount();
     } catch (error) {
-        console.error('[ProcessFeedback] Could not retrieve revision count from IndexedDB. ' +
+        debugError(windowRef, 'Could not retrieve revision count from IndexedDB. ' +
             'Using snapshot count as fallback.', error);
         revisionCount = snapshotKeys.length;
     }
@@ -248,7 +192,7 @@ export const uploadProcessFeedbackSubmission = async(state, revisionStore, autos
     try {
         summary = buildSummary(timeAndTextSnapshots, revisionCount);
     } catch (error) {
-        console.error('[ProcessFeedback] Summary calculation failed. ' +
+        debugError(windowRef, 'Summary calculation failed. ' +
             'Submission will proceed without process data.', error);
         return 0;
     }
@@ -257,7 +201,7 @@ export const uploadProcessFeedbackSubmission = async(state, revisionStore, autos
     try {
         payload = await createPayload(state, revisionStore);
     } catch (error) {
-        console.error('[ProcessFeedback] Failed to build process data payload. ' +
+        debugError(windowRef, 'Failed to build process data payload. ' +
             'Submission will proceed without process data.', error);
         return 0;
     }
@@ -266,7 +210,7 @@ export const uploadProcessFeedbackSubmission = async(state, revisionStore, autos
     try {
         zipBlob = await buildZipBlob(payload, getZipReadme(state));
     } catch (error) {
-        console.error('[ProcessFeedback] Failed to create process data ZIP. ' +
+        debugError(windowRef, 'Failed to create process data ZIP. ' +
             'Submission will proceed without process data.', error);
         return 0;
     }
@@ -276,28 +220,26 @@ export const uploadProcessFeedbackSubmission = async(state, revisionStore, autos
     });
     const zipFilename = getProcessZipFilename(state);
 
-    let actualItemId;
     try {
-        actualItemId = await uploadFileToDraftArea(state, windowRef, 0, zipBlob, zipFilename);
+        await uploadFileToDraftArea(state, windowRef, draftItemId, zipBlob, zipFilename, '.zip');
     } catch (error) {
-        console.error('[ProcessFeedback] Failed to upload process data ZIP to Moodle draft area. ' +
+        debugError(windowRef, 'Failed to upload process data ZIP to Moodle draft area. ' +
             'Submission will proceed without process data.', error);
         return 0;
     }
 
-    let finalItemId;
     try {
-        finalItemId = await uploadFileToDraftArea(state, windowRef, actualItemId, summaryBlob, SUMMARY_FILENAME);
+        await uploadFileToDraftArea(state, windowRef, draftItemId, summaryBlob, SUMMARY_FILENAME, '.json');
     } catch (error) {
-        console.error('[ProcessFeedback] Failed to upload process summary JSON to Moodle draft area. ' +
+        debugError(windowRef, 'Failed to upload process summary JSON to Moodle draft area. ' +
             'Submission will proceed without process data.', error);
         return 0;
     }
 
     debugLog(windowRef, 'Submission process-data upload completed', {
         zipFilename,
-        finalItemId,
+        draftItemId,
         revisionCount,
     });
-    return finalItemId;
+    return draftItemId;
 };

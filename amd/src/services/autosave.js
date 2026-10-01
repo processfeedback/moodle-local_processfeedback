@@ -249,7 +249,7 @@ export const createAutosaveService = (state, editorBinder, revisionStore, panel,
             if (index !== -1) {
                 pendingPasteActions.splice(index, 1);
             }
-        });
+        }).catch(showStorageFailure);
     };
 
     const flushPendingPasteActions = async() => {

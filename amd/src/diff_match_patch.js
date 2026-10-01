@@ -11,7 +11,7 @@
  * - Retained as a Moodle AMD-compatible source file.
  * - Adapted by keeping the named ES module export for DiffMatchPatch.
  * - Any local modifications must be documented here.
- * - Rebuild Moodle AMD output with: npm.cmd run build
+ * - Built into amd/build with Moodle's standard grunt amd task.
  */
 
 /**

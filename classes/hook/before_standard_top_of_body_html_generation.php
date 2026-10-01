@@ -45,7 +45,7 @@ final class before_standard_top_of_body_html_generation {
         if (during_initial_install() || !get_config('local_processfeedback', 'version')) {
             return;
         }
-        
+
         // Only fire on module context pages (assign/forum view, grading, etc).
         // modedit.php create/edit forms are handled by coursemodule_standard_elements() in lib.php.
         $context = $PAGE->context;

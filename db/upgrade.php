@@ -22,14 +22,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Upgrade the Process Feedback local plugin.
  *
  * @param int $oldversion Previously installed plugin version.
  * @return bool
- */ 
+ */
 function xmldb_local_processfeedback_upgrade(int $oldversion): bool {
 
     // Always sync custom field labels and category description on every upgrade.

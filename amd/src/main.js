@@ -21,7 +21,13 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-import {createPanel, getAssignmentEditorPlacementTarget, getAssignmentStatusPlacementTarget, getForumBoardPlacementTarget, PANEL_CLASS} from 'local_processfeedback/components/panel';
+import {
+    createPanel,
+    getAssignmentEditorPlacementTarget,
+    getAssignmentStatusPlacementTarget,
+    getForumBoardPlacementTarget,
+    PANEL_CLASS,
+} from 'local_processfeedback/components/panel';
 import {createEditorBinder} from 'local_processfeedback/components/editor';
 import {createAutosaveService} from 'local_processfeedback/services/autosave';
 import {fetchBootstrapData} from 'local_processfeedback/services/bootstrap';
@@ -30,9 +36,9 @@ import {createRevisionStore} from 'local_processfeedback/services/revisions';
 import {createStorage} from 'local_processfeedback/services/storage';
 import {createState, ensureProjectId} from 'local_processfeedback/state/store';
 import {initSubmissionInterceptor} from 'local_processfeedback/submission/interceptor';
-import { notifyException } from 'local_processfeedback/utils/notifications';
-import { initAssignmentReportActions } from 'local_processfeedback/submission/assignment_report_actions';
-import { getSingleWritingProcessReportLinks } from 'local_processfeedback/submission/single_report_buttons';
+import {notifyException} from 'local_processfeedback/utils/notifications';
+import {initAssignmentReportActions} from 'local_processfeedback/submission/assignment_report_actions';
+import {getSingleWritingProcessReportLinks} from 'local_processfeedback/submission/single_report_buttons';
 import {debugError, debugLog} from 'local_processfeedback/utils/logger';
 
 const ROOT_SELECTOR = '#local-processfeedback-root';
@@ -167,6 +173,7 @@ const hasAssignmentReportActions = (documentRef) => getSingleWritingProcessRepor
  * @param {number} cmid Course module ID for legacy calls.
  * @return {Promise<void>}
  */
+// eslint-disable-next-line complexity
 export const init = async(configOrContextid, cmid) => {
     const config = normaliseInitConfig(configOrContextid, cmid);
     debugLog(window, 'Initialising capture UI', {
@@ -264,8 +271,12 @@ export const init = async(configOrContextid, cmid) => {
         const editor = editorBinder.detectEditors().find((candidate) => (
             candidate && candidate.placement && candidate.sourceEditorId
         ));
-        const placement = editor ? editor.placement :
-            (state.lastRevisionCount > 0 ? getForumBoardPlacementTarget(document) : null);
+        let placement = null;
+        if (editor) {
+            placement = editor.placement;
+        } else if (state.lastRevisionCount > 0) {
+            placement = getForumBoardPlacementTarget(document);
+        }
         const sourceEditorId = editor ? editor.sourceEditorId : 'forum-board';
 
         if (!placement) {
@@ -294,12 +305,12 @@ export const init = async(configOrContextid, cmid) => {
         }
 
         const editor = editorBinder.detectEditor();
-        const placement = editor ? getAssignmentEditorPlacementTarget(document) :
-            (
-                state.lastRevisionCount > 0 && !hasAssignmentReportActions(document) ?
-                    getAssignmentStatusPlacementTarget(document) :
-                    null
-            );
+        let placement = null;
+        if (editor) {
+            placement = getAssignmentEditorPlacementTarget(document);
+        } else if (state.lastRevisionCount > 0 && !hasAssignmentReportActions(document)) {
+            placement = getAssignmentStatusPlacementTarget(document);
+        }
         if (!placement) {
             panelRegistry.removePanels();
             debugLog(window, 'Assignment panel sync removed panels: no editor or fallback placement available', {

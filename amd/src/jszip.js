@@ -21,7 +21,7 @@
  * - Process Feedback uses JSZip for ZIP generation only; it does not load ZIP files or
  *   execute ZIP content.
  * - Any local modifications must be documented here.
- * - Rebuild Moodle AMD output with: npx grunt amd
+ * - Built into amd/build with Moodle's standard grunt amd task.
  */
 
 /**

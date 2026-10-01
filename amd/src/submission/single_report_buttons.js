@@ -13,15 +13,30 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-import Str from 'core/str';
-import { createProcessFeedbackButton, getProcessFeedbackZipLinks, SINGLE_REPORT_ACTION_CLASS, SINGLE_REPORT_BUTTON_CLASS, SINGLE_REPORT_STATUS_CLASS, sendZipLinksToProcessFeedback } from 'local_processfeedback/submission/report_transfer';
+/**
+ * Single submission report buttons for the Process Feedback UI.
+ *
+ * @module     local_processfeedback/submission/single_report_buttons
+ * @copyright  2026 Process Feedback
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+import {getString} from 'core/str';
+import {
+    createProcessFeedbackButton,
+    getProcessFeedbackZipLinks,
+    SINGLE_REPORT_ACTION_CLASS,
+    SINGLE_REPORT_BUTTON_CLASS,
+    SINGLE_REPORT_STATUS_CLASS,
+    sendZipLinksToProcessFeedback,
+} from 'local_processfeedback/submission/report_transfer';
 import {debugError, debugLog} from 'local_processfeedback/utils/logger';
 
 const PROCESSFEEDBACK_TEXT = 'process feedback';
 const DOWNLOAD_PROCESS_DATA_TEXT = 'download process data';
 const SINGLE_INIT_PENDING_DATA = 'processfeedbackSingleReportInitialising';
 
-const getLanguageString = (key, value = undefined) => Str.get_string(key, 'local_processfeedback', value);
+const getLanguageString = (key, value = undefined) => getString(key, 'local_processfeedback', value);
 
 const getLinkKey = (link) => `${link.dataset.submissionId || ''}:${link.getAttribute('href') || ''}`;
 
@@ -196,7 +211,7 @@ export const initSingleWritingProcessReportButtons = async(windowRef, documentRe
         status.setAttribute('role', 'status');
         status.setAttribute('aria-live', 'polite');
 
-        button.addEventListener('click', async () => {
+        button.addEventListener('click', async() => {
             button.disabled = true;
             status.textContent = '';
             try {

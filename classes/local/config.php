@@ -224,5 +224,4 @@ final class config {
 
         return array_map('intval', explode(',', $normalised));
     }
-
 }

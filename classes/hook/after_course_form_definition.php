@@ -44,8 +44,10 @@ final class after_course_form_definition {
 
         $mform = $hook->mform;
 
-        if (!$mform->elementExists(self::FORUM_ELEMENT) || !$mform->elementExists(self::ASSIGNMENT_ELEMENT) ||
-                $mform->elementExists(self::GROUP_ELEMENT)) {
+        if (
+            !$mform->elementExists(self::FORUM_ELEMENT) || !$mform->elementExists(self::ASSIGNMENT_ELEMENT) ||
+                $mform->elementExists(self::GROUP_ELEMENT)
+        ) {
             return;
         }
 
@@ -65,7 +67,7 @@ final class after_course_form_definition {
         );
         $assignmentcheckbox->_helpbutton = $OUTPUT->help_icon('enableassignmentscourse', 'local_processfeedback');
 
-        $groupElement = $mform->createElement(
+        $groupelement = $mform->createElement(
             'group',
             self::GROUP_ELEMENT,
             get_string('choosewhereenableprocessfeedback', 'local_processfeedback'),
@@ -73,7 +75,7 @@ final class after_course_form_definition {
             ['<br>'],
             false,
         );
-        $mform->insertElementBefore($groupElement, self::FORUM_ELEMENT);
+        $mform->insertElementBefore($groupelement, self::FORUM_ELEMENT);
 
         self::remove_element_if_exists($mform, self::FORUM_ELEMENT . '_static');
         self::remove_element_if_exists($mform, self::ASSIGNMENT_ELEMENT . '_static');
