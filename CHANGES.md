@@ -1,5 +1,9 @@
 # Process Feedback Local changes
 
+## 0.5.4 - 2026-10-13
+
+- Opens writing process reports on `moodle.processfeedback.org` instead of `app.processfeedback.org`.
+
 ## 0.5.3 - 2026-10-12
 
 - Release ZIPs now use `processfeedback` as the root folder, so they can be installed with "Install plugin from
